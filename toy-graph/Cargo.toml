@@ -1,0 +1,18 @@
+[package]
+name = "toy-graph"
+authors = ["JacobX <jacobbishopxy@gmail.com>"]
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+name = "rust"
+crate-type = ["cdylib"]
+
+[dependencies]
+lazy_static = "1"
+mongodb = "2"
+pyo3 = { version = "0", features = ["extension-module"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = "1"
