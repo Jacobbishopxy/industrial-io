@@ -2,7 +2,7 @@
 //!
 //! A relationship is a connection between two entities.
 
-use bson::oid::ObjectId;
+use bson::{oid::ObjectId, to_document, Document};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
@@ -19,4 +19,48 @@ pub struct Relationship {
     pub weight: Option<f64>,
     pub data: Option<JsonValue>,
     pub option: EdgeOption,
+}
+
+impl From<&Relationship> for Document {
+    fn from(v: &Relationship) -> Self {
+        to_document(v).unwrap()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RelationshipDto {
+    pub source: ObjectId,
+    pub target: ObjectId,
+    pub weight: Option<f64>,
+    pub data: Option<JsonValue>,
+    pub option: EdgeOption,
+}
+
+impl RelationshipDto {
+    pub fn new(
+        source: ObjectId,
+        target: ObjectId,
+        weight: Option<f64>,
+        data: Option<JsonValue>,
+        option: EdgeOption,
+    ) -> Self {
+        RelationshipDto {
+            source,
+            target,
+            weight,
+            data,
+            option,
+        }
+    }
+
+    pub fn to_relationship(self) -> Relationship {
+        Relationship {
+            id: None,
+            source: self.source,
+            target: self.target,
+            weight: self.weight,
+            data: self.data,
+            option: self.option,
+        }
+    }
 }

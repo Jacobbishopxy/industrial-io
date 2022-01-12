@@ -1,14 +1,19 @@
 //! Entity
 //!
+//! 1. Catalog
 //! 1. Company
 //! 1. Property
 //! 1. Relationship
 //!
+//! A graph consists of metadata and topology relation.
+//! Toy-graph's topology relation contains `company`, `property` and `relationship`.
 
+pub mod catalog;
 pub mod company;
 pub mod property;
 pub mod relationship;
 
+pub use catalog::*;
 pub use company::*;
 pub use property::*;
 pub use relationship::*;
