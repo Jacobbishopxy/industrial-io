@@ -3,7 +3,7 @@
 //! A provider manages different graphs. It contains two main fields: mongo_client and redis_client.
 //! The former plays the role of data persistence, and the latter plays the role of data caching.
 
-use super::{MongoClient, RedisClient};
+use crate::infra::{MongoClient, RedisClient};
 
 #[allow(dead_code)]
 #[derive(Clone)]

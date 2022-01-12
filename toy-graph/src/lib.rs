@@ -1,8 +1,9 @@
 //! Toy Graph
 
-pub mod controller;
+pub mod domain;
 pub mod entity;
 pub mod errors;
-pub mod service;
+pub mod infra;
+pub mod repository;
 
 pub use errors::*;

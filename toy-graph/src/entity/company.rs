@@ -2,64 +2,23 @@
 //!
 //!
 
-use std::str::FromStr;
-
 use anyhow::Context;
-use mongodb::bson::oid::ObjectId;
 use mongodb::bson::{to_document, Document};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
-use crate::{TGError, TGResult};
+use crate::TGResult;
 
-use super::VertexOption;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum Category {
-    MacroStrategy,
-    CyclicalIndustry,
-    TechnologyMediaTelecom,
-    Internet,
-    ConsumerIndustry,
-    PublicServiceAndMonopoly,
-    FinanceAndRealEstate,
-    AdvancedManufacturing,
-    AgricultureAndAquaculture,
-    HealthAndMedicine,
-    PowerSystemAndEnergy,
-    Electronics,
-}
-
-impl FromStr for Category {
-    type Err = TGError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value {
-            "MacroStrategy" => Ok(Category::MacroStrategy),
-            "CyclicalIndustry" => Ok(Category::CyclicalIndustry),
-            "TechnologyMediaTelecom" => Ok(Category::TechnologyMediaTelecom),
-            "Internet" => Ok(Category::Internet),
-            "ConsumerIndustry" => Ok(Category::ConsumerIndustry),
-            "PublicServiceAndMonopoly" => Ok(Category::PublicServiceAndMonopoly),
-            "FinanceAndRealEstate" => Ok(Category::FinanceAndRealEstate),
-            "AdvancedManufacturing" => Ok(Category::AdvancedManufacturing),
-            "AgricultureAndAquaculture" => Ok(Category::AgricultureAndAquaculture),
-            "HealthAndMedicine" => Ok(Category::HealthAndMedicine),
-            "PowerSystemAndEnergy" => Ok(Category::PowerSystemAndEnergy),
-            "Electronics" => Ok(Category::Electronics),
-            _ => Err(TGError::Parse(value.to_string())),
-        }
-    }
-}
+use super::{Industry, VertexOption, ID};
 
 #[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Company {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
+    pub id: Option<ID>,
     pub name: String,
-    pub category: Category,
+    pub category: Industry,
     pub group: Option<String>,
     pub data: Option<JsonValue>,
     pub option: VertexOption,

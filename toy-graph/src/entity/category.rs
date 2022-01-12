@@ -1,32 +1,34 @@
-//! Catalog
+//! Category
 //!
-//! Catalog is a collection of graphs' metadata.
+//! Category is a collection of graphs' metadata.
 
-use bson::oid::ObjectId;
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use super::ID;
 
 #[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Catalog {
+pub struct Category {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
+    pub id: Option<ID>,
     pub name: String,
     pub description: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CatalogDto<'a> {
+pub struct CategoryDto<'a> {
     pub name: &'a str,
     pub description: Option<&'a str>,
 }
 
-impl<'a> CatalogDto<'a> {
+impl<'a> CategoryDto<'a> {
     pub fn new(name: &'a str, description: Option<&'a str>) -> Self {
-        CatalogDto { name, description }
+        CategoryDto { name, description }
     }
 
-    pub fn to_catalog(self) -> Catalog {
-        Catalog {
+    pub fn to_catalog(self) -> Category {
+        Category {
             id: None,
             name: self.name.to_string(),
             description: self.description.map(str::to_string),

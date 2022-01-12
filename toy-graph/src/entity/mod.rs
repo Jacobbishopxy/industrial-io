@@ -8,13 +8,15 @@
 //! A graph consists of metadata and topology relation.
 //! Toy-graph's topology relation contains `company`, `property` and `relationship`.
 
-pub mod catalog;
+pub mod category;
 pub mod company;
+pub mod industry;
 pub mod property;
 pub mod relationship;
 
-pub use catalog::*;
+pub use category::*;
 pub use company::*;
+pub use industry::*;
 pub use property::*;
 pub use relationship::*;
 
@@ -23,11 +25,8 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
-pub struct PureId {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
-}
+// name alias
+pub type ID = ObjectId;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Position {

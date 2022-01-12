@@ -2,20 +2,20 @@
 //!
 //! A relationship is a connection between two entities.
 
-use bson::{oid::ObjectId, to_document, Document};
+use bson::{to_document, Document};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
-use super::EdgeOption;
+use super::{EdgeOption, ID};
 
 #[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Relationship {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    pub source: ObjectId,
-    pub target: ObjectId,
+    pub id: Option<ID>,
+    pub source: ID,
+    pub target: ID,
     pub weight: Option<f64>,
     pub data: Option<JsonValue>,
     pub option: EdgeOption,
@@ -29,8 +29,8 @@ impl From<&Relationship> for Document {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RelationshipDto {
-    pub source: ObjectId,
-    pub target: ObjectId,
+    pub source: ID,
+    pub target: ID,
     pub weight: Option<f64>,
     pub data: Option<JsonValue>,
     pub option: EdgeOption,
@@ -38,8 +38,8 @@ pub struct RelationshipDto {
 
 impl RelationshipDto {
     pub fn new(
-        source: ObjectId,
-        target: ObjectId,
+        source: ID,
+        target: ID,
         weight: Option<f64>,
         data: Option<JsonValue>,
         option: EdgeOption,

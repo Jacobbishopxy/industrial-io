@@ -2,19 +2,18 @@
 //!
 //! A generic property for company entities.
 
-use mongodb::bson::oid::ObjectId;
 use mongodb::bson::{to_document, Document};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
-use super::VertexOption;
+use super::{VertexOption, ID};
 
 #[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Property {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
+    pub id: Option<ID>,
     pub name: String,
     pub label: Option<String>,
     pub data: Option<JsonValue>,
