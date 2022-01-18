@@ -1,4 +1,6 @@
 //! Domain
+//!
+//! Domain implement all business logic, and use all methods provided by Repository.
 
 use async_trait::async_trait;
 
@@ -16,12 +18,13 @@ impl<T> ToyGraph<T>
 where
     T: Repository,
 {
+    /// show all catalogues
     async fn show_catalogue(&self) -> TGResult<Vec<Category>> {
         self.repository.show_catalogue().await
     }
 
-    // TODO: a graph is a new data structure containing companies and relationships
-    async fn save_graph(&self, graph: ()) -> TGResult<()> {
+    /// save a view, which is a graph of companies and relationships
+    async fn save_view(&self, view: View) -> TGResult<()> {
         todo!()
     }
 }

@@ -4,6 +4,7 @@
 //! 1. Company
 //! 1. Property
 //! 1. Relationship
+//! 1. View
 //!
 //! A graph consists of metadata and topology relation.
 //! Toy-graph's topology relation contains `company`, `property` and `relationship`.
@@ -13,12 +14,14 @@ pub mod company;
 pub mod industry;
 pub mod property;
 pub mod relationship;
+pub mod view;
 
 pub use category::*;
 pub use company::*;
 pub use industry::*;
 pub use property::*;
 pub use relationship::*;
+pub use view::*;
 
 use mongodb::bson::oid::ObjectId;
 use pyo3::prelude::*;
@@ -27,6 +30,7 @@ use serde_json::value::Value as JsonValue;
 
 // name alias
 pub type ID = ObjectId;
+pub type Weight = f64;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Position {

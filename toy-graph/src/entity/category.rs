@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 
 use super::ID;
 
+/// Category
+///
+/// name: collection of a graph
 #[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Category {

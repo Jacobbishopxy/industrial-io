@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
-use super::{EdgeOption, ID};
+use super::{EdgeOption, Weight, ID};
 
 #[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -29,38 +29,24 @@ impl From<&Relationship> for Document {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RelationshipDto {
-    pub source: ID,
-    pub target: ID,
-    pub weight: Option<f64>,
+    pub joint: Option<(ID, ID)>,
+    pub weight: Option<Weight>,
     pub data: Option<JsonValue>,
     pub option: EdgeOption,
 }
 
 impl RelationshipDto {
     pub fn new(
-        source: ID,
-        target: ID,
-        weight: Option<f64>,
+        joint: Option<(ID, ID)>,
+        weight: Option<Weight>,
         data: Option<JsonValue>,
         option: EdgeOption,
     ) -> Self {
         RelationshipDto {
-            source,
-            target,
+            joint,
             weight,
             data,
             option,
-        }
-    }
-
-    pub fn to_relationship(self) -> Relationship {
-        Relationship {
-            id: None,
-            source: self.source,
-            target: self.target,
-            weight: self.weight,
-            data: self.data,
-            option: self.option,
         }
     }
 }
