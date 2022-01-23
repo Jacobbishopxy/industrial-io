@@ -24,7 +24,6 @@ pub use relationship::*;
 pub use view::*;
 
 use mongodb::bson::oid::ObjectId;
-use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
@@ -58,7 +57,6 @@ impl Default for VertexType {
     }
 }
 
-#[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct VertexOption {
     pub position: (i64, i64),
@@ -110,7 +108,6 @@ impl Default for ArrowType {
     }
 }
 
-#[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EdgeOption {
     pub etype: EdgeType,

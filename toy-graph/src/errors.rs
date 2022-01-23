@@ -9,4 +9,7 @@ pub type TGResult<T> = Result<T>;
 pub enum TGError {
     #[error("Invalid argument: {0}")]
     Parse(String),
+
+    #[error("Invalid object id")]
+    InvalidID,
 }

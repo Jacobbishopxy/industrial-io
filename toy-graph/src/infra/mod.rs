@@ -6,5 +6,6 @@ mod cache;
 mod persistence;
 mod provider;
 
+// pub use cache::*;
 use cache::*;
-use persistence::*;
+pub use persistence::*;

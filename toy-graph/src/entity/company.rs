@@ -4,15 +4,12 @@
 
 use anyhow::Context;
 use mongodb::bson::{to_document, Document};
-use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
+use super::{Industry, VertexOption, ID};
 use crate::TGResult;
 
-use super::{Industry, VertexOption, ID};
-
-#[pyclass]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Company {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -67,6 +64,20 @@ impl<'a> CompanyDto<'a> {
         };
 
         Ok(company)
+    }
+}
+
+impl<'a> From<CompanyDto<'a>> for Document {
+    fn from(v: CompanyDto) -> Self {
+        to_document(&v).unwrap()
+    }
+}
+
+impl<'a> TryFrom<CompanyDto<'a>> for Company {
+    type Error = anyhow::Error;
+
+    fn try_from(value: CompanyDto<'a>) -> Result<Self, Self::Error> {
+        value.to_company()
     }
 }
 

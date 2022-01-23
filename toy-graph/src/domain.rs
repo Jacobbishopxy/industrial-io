@@ -2,7 +2,7 @@
 //!
 //! Domain implement all business logic, and use all methods provided by Repository.
 
-use async_trait::async_trait;
+// use async_trait::async_trait;
 
 use crate::repository::Repository;
 use crate::{entity::*, TGResult};
@@ -14,6 +14,7 @@ where
     repository: T,
 }
 
+#[allow(dead_code)]
 impl<T> ToyGraph<T>
 where
     T: Repository,
@@ -23,8 +24,8 @@ where
         self.repository.show_catalogue().await
     }
 
-    /// save a view, which is a graph of companies and relationships
-    async fn save_view(&self, view: View) -> TGResult<()> {
-        todo!()
-    }
+    // / save a view, which is a graph of companies and relationships
+    // async fn save_view(&self, view: View) -> TGResult<()> {
+    //     todo!()
+    // }
 }
