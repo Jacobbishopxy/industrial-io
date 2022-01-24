@@ -9,7 +9,11 @@ edition = "2021"
 name = "rust"
 crate-type = ["rlib", "cdylib"]
 
+[workspace]
+members = [".", "crud-derive"]
+
 [dependencies]
+crud-derive = { path = "./crud-derive" }
 anyhow = "1"
 async-trait = "0"
 bson = "2"

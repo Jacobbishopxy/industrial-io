@@ -137,6 +137,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crud-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "crypto-mac"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1284,6 +1293,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bson",
+ "crud-derive",
  "mongodb",
  "pyo3",
  "redis",
