@@ -10,6 +10,9 @@ pub enum TGError {
     #[error("Invalid argument: {0}")]
     Parse(String),
 
+    #[error("ID not found")]
+    IDNotFound,
+
     #[error("Invalid object id")]
     InvalidID,
 }

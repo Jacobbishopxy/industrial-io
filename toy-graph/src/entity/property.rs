@@ -57,3 +57,17 @@ impl<'a> PropertyDto<'a> {
         }
     }
 }
+
+impl<'a> From<PropertyDto<'a>> for Document {
+    fn from(v: PropertyDto<'a>) -> Self {
+        to_document(&v).unwrap()
+    }
+}
+
+impl<'a> TryFrom<PropertyDto<'a>> for Property {
+    type Error = anyhow::Error;
+
+    fn try_from(value: PropertyDto<'a>) -> Result<Self, Self::Error> {
+        Ok(value.to_property())
+    }
+}

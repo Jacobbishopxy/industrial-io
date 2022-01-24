@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
 use super::{EdgeOption, Weight, ID};
+use crate::{TGError, TGResult};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Relationship {
@@ -46,5 +47,32 @@ impl RelationshipDto {
             data,
             option,
         }
+    }
+
+    pub fn to_relationship(self) -> TGResult<Relationship> {
+        let joint = self.joint.as_ref().ok_or(TGError::IDNotFound)?;
+        let rl = Relationship {
+            id: None,
+            source: joint.0,
+            target: joint.1,
+            weight: self.weight,
+            data: self.data,
+            option: self.option,
+        };
+        Ok(rl)
+    }
+}
+
+impl From<RelationshipDto> for Document {
+    fn from(value: RelationshipDto) -> Self {
+        to_document(&value).unwrap()
+    }
+}
+
+impl TryFrom<RelationshipDto> for Relationship {
+    type Error = anyhow::Error;
+
+    fn try_from(value: RelationshipDto) -> Result<Self, Self::Error> {
+        value.to_relationship()
     }
 }
