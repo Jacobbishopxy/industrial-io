@@ -63,6 +63,14 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
 
     let expanded = quote! {
         impl IDMutator for #name {
+            fn id(&self) -> Option<bson::oid::ObjectId> {
+                self.#id
+            }
+
+            fn remove_id(&mut self) {
+                self.#id = None;
+            }
+
             fn mutate_id(&mut self, oid: bson::oid::ObjectId) -> anyhow::Result<()> {
                 self.#id = Some(oid);
                 Ok(())

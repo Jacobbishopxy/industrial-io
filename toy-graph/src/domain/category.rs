@@ -40,9 +40,9 @@ mod test_category {
         assert_eq!(category.name, "test");
         assert_eq!(category.description, None);
 
-        let client = MongoClient::new(URI, "test").await.unwrap();
+        let client = MongoClient::new(URI, "test", "dev").await.unwrap();
 
-        let res = client.create("test", "dev", category).await;
+        let res = client.create(category).await;
         assert!(res.is_ok());
     }
 }

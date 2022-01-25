@@ -1,21 +1,37 @@
 //! Persistence service.
 
+use std::borrow::Cow;
+
 #[derive(Clone)]
 pub struct MongoClient {
     client: mongodb::Client,
+    pub database: String,
+    pub collection: String,
 }
 
 pub trait MongoClientFactory: Send + Sync {
-    fn collection<T>(&self, db: &str, name: &str) -> mongodb::Collection<T>;
+    fn database(&self) -> Cow<str>;
+
+    fn set_database(&mut self, database: &str);
+
+    fn collection(&self) -> Cow<str>;
+
+    fn set_collection(&mut self, collection: &str);
+
+    fn coll<T>(&self) -> mongodb::Collection<T>;
 }
 
 impl MongoClient {
-    pub async fn new(uri: &str, name: &str) -> anyhow::Result<Self> {
-        let mut co = mongodb::options::ClientOptions::parse(uri).await?;
-        co.app_name = Some(name.to_string());
+    pub async fn new(uri: &str, database: &str, collection: &str) -> anyhow::Result<Self> {
+        let co = mongodb::options::ClientOptions::parse(uri).await?;
 
         let client = mongodb::Client::with_options(co)?;
-        Ok(MongoClient { client })
+
+        Ok(MongoClient {
+            client,
+            database: database.to_string(),
+            collection: collection.to_string(),
+        })
     }
 
     pub async fn show_dbs(&self) -> anyhow::Result<Vec<String>> {
@@ -25,8 +41,26 @@ impl MongoClient {
 }
 
 impl MongoClientFactory for MongoClient {
-    fn collection<T>(&self, db: &str, name: &str) -> mongodb::Collection<T> {
-        self.client.database(db).collection(name)
+    fn database(&self) -> Cow<str> {
+        Cow::Borrowed(&self.database)
+    }
+
+    fn set_database(&mut self, database: &str) {
+        self.database = database.to_string();
+    }
+
+    fn collection(&self) -> Cow<str> {
+        Cow::Borrowed(&self.collection)
+    }
+
+    fn set_collection(&mut self, collection: &str) {
+        self.collection = collection.to_string();
+    }
+
+    fn coll<T>(&self) -> mongodb::Collection<T> {
+        self.client
+            .database(&self.database)
+            .collection(&self.collection)
     }
 }
 
@@ -38,7 +72,7 @@ mod test_persistence {
     async fn test_show_dbs() {
         let uri = "mongodb://root:secret@localhost:27017";
 
-        let client = MongoClient::new(uri, "test").await;
+        let client = MongoClient::new(uri, "test", "dev").await;
         assert!(client.is_ok());
 
         let client = client.unwrap();
