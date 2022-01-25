@@ -3,45 +3,16 @@
 //! ActiveRecord-like CRUD operations.
 
 use async_trait::async_trait;
-use bson::Bson;
+use bson::oid::ObjectId;
 use serde::Serialize;
 
 use crate::entity::*;
 use crate::infra::{MongoClient, MongoClientFactory};
 use crate::{TGError, TGResult};
 
-pub trait IDMutator {
-    fn mutate_id(&mut self, id: Bson) -> TGResult<()>;
-}
-
-impl IDMutator for Company {
-    fn mutate_id(&mut self, id: Bson) -> TGResult<()> {
-        let id = id.as_object_id().ok_or(TGError::InvalidID)?;
-        self.id = Some(id);
-        Ok(())
-    }
-}
-
-impl IDMutator for Category {
-    fn mutate_id(&mut self, id: Bson) -> TGResult<()> {
-        let id = id.as_object_id().ok_or(TGError::InvalidID)?;
-        self.id = Some(id);
-        Ok(())
-    }
-}
-
-impl IDMutator for Property {
-    fn mutate_id(&mut self, id: Bson) -> TGResult<()> {
-        let id = id.as_object_id().ok_or(TGError::InvalidID)?;
-        self.id = Some(id);
-        Ok(())
-    }
-}
-
 impl IDMutator for Relationship {
-    fn mutate_id(&mut self, id: Bson) -> TGResult<()> {
-        let id = id.as_object_id().ok_or(TGError::InvalidID)?;
-        self.id = Some(id);
+    fn mutate_id(&mut self, oid: ObjectId) -> TGResult<()> {
+        self.id = Some(oid);
         Ok(())
     }
 }
@@ -61,7 +32,11 @@ where
             .insert_one(t.clone(), None)
             .await?;
         let mut res = RES::try_from(t)?;
-        res.mutate_id(insert.inserted_id)?;
+        let oid = insert
+            .inserted_id
+            .as_object_id()
+            .ok_or(TGError::InvalidID)?;
+        res.mutate_id(oid)?;
         Ok(res)
     }
 }

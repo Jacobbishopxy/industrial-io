@@ -23,9 +23,11 @@ pub use property::*;
 pub use relationship::*;
 pub use view::*;
 
-use mongodb::bson::oid::ObjectId;
+use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
+
+use crate::TGResult;
 
 // name alias
 pub type ID = ObjectId;
@@ -135,4 +137,8 @@ impl Default for EdgeOption {
             target_position: Position::Top,
         }
     }
+}
+
+pub trait IDMutator {
+    fn mutate_id(&mut self, oid: ObjectId) -> TGResult<()>;
 }

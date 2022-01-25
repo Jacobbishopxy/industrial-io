@@ -7,10 +7,12 @@ use mongodb::bson::{to_document, Document};
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
-use super::{Industry, VertexOption, ID};
+use crud_derive::*;
+
+use super::{IDMutator, Industry, VertexOption, ID};
 use crate::TGResult;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, CRUD)]
 pub struct Company {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ID>,
