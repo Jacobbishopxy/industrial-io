@@ -1,7 +1,5 @@
 //! Persistence service.
 
-use mongodb::options::ClientOptions;
-
 #[derive(Clone)]
 pub struct MongoClient {
     client: mongodb::Client,
@@ -13,7 +11,7 @@ pub trait MongoClientFactory: Send + Sync {
 
 impl MongoClient {
     pub async fn new(uri: &str, name: &str) -> anyhow::Result<Self> {
-        let mut co = ClientOptions::parse(uri).await?;
+        let mut co = mongodb::options::ClientOptions::parse(uri).await?;
         co.app_name = Some(name.to_string());
 
         let client = mongodb::Client::with_options(co)?;
@@ -38,7 +36,7 @@ mod test_persistence {
 
     #[tokio::test]
     async fn test_show_dbs() {
-        let uri = "mongodb://localhost:27017";
+        let uri = "mongodb://root:secret@localhost:27017";
 
         let client = MongoClient::new(uri, "test").await;
         assert!(client.is_ok());

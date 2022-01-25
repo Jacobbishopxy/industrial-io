@@ -137,6 +137,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "crud"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bson",
+ "crud-derive",
+ "mongodb",
+ "redis",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "crud-derive"
 version = "0.1.0"
 dependencies = [
@@ -1293,7 +1309,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bson",
- "crud-derive",
+ "crud",
  "mongodb",
  "pyo3",
  "redis",

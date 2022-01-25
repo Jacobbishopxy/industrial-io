@@ -27,8 +27,6 @@ use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value as JsonValue;
 
-use crate::TGResult;
-
 // name alias
 pub type ID = ObjectId;
 pub type Weight = f64;
@@ -137,8 +135,4 @@ impl Default for EdgeOption {
             target_position: Position::Top,
         }
     }
-}
-
-pub trait IDMutator {
-    fn mutate_id(&mut self, oid: ObjectId) -> TGResult<()>;
 }

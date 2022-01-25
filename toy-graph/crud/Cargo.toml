@@ -1,27 +1,17 @@
 [package]
-name = "toy-graph"
+name = "crud"
 authors = ["JacobX <jacobbishopxy@gmail.com>"]
 version = "0.1.0"
 edition = "2021"
 
-
-[lib]
-name = "rust"
-crate-type = ["rlib", "cdylib"]
-
-[workspace]
-members = [".", "crud-derive", "crud"]
-
 [dependencies]
-crud = { path = "./crud" }
+crud-derive = { path = "../crud-derive" }
 anyhow = "1"
 async-trait = "0"
 bson = "2"
 mongodb = "2"
-pyo3 = { version = "0", features = ["extension-module"] }
 redis = { version = "0.21.4", features = ["tokio-comp"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "1"
 tokio = "1"
 tokio-stream = "0"

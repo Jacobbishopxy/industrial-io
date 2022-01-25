@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 #[allow(dead_code)]
 #[derive(Clone)]
-pub(crate) struct RedisClient {
+pub struct RedisClient {
     connection: Arc<redis::aio::Connection>,
 }
 
