@@ -1,4 +1,4 @@
-//! Toy Graph
+//! Industrial IO
 
 pub mod domain;
 pub mod errors;

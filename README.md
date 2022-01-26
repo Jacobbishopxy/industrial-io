@@ -1,6 +1,6 @@
-# Toy Graph
+# IndustrialIO
 
-A demo of using MongoDB as Graph Database
+An industrial chain app by using MongoDB as Graph Database
 
 ## Concepts
 

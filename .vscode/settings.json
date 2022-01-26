@@ -1,5 +1,5 @@
 {
-	"rust-analyzer.linkedProjects": ["toy-graph/Cargo.toml"],
+	"rust-analyzer.linkedProjects": ["industrial-io/Cargo.toml"],
 	"python.formatting.provider": "black",
 	"cSpell.words": ["etype", "vtype"]
 }

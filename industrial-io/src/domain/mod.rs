@@ -7,7 +7,7 @@
 //! 1. View
 //!
 //! A graph consists of metadata and topology relation.
-//! Toy-graph's topology relation contains `company`, `property` and `relationship`.
+//! Industrial-IO topology relation contains `company`, `property` and `relationship`.
 
 pub mod category;
 pub mod company;
