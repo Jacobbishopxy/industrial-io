@@ -13,11 +13,11 @@ pub trait Repository: Send + Sync {
     // main
     // ===========================================================================
 
-    async fn show_catalogue(&self) -> TGResult<Vec<Category>>;
+    async fn show_catalog(&self) -> TGResult<Vec<Category>>;
 
     async fn get_metadata(&self, id: ID) -> TGResult<Category>;
 
-    // async fn get_contents(&self, id: ID) -> TGResult<View>;
+    async fn get_contents(&self, id: ID) -> TGResult<View>;
 
     // ===========================================================================
     // category

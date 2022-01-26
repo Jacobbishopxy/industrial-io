@@ -205,6 +205,14 @@ impl Relationship {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct View {
+    pub category: Category,
+    pub companies: Vec<Company>,
+    pub properties: Vec<Property>,
+    pub relationships: Vec<Relationship>,
+}
+
 #[cfg(test)]
 mod test_category {
     use super::*;
