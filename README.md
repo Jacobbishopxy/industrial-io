@@ -1,4 +1,4 @@
-# IndustrialIO
+# Industrial-IO
 
 An industrial chain app by using MongoDB as Graph Database
 

@@ -9,19 +9,9 @@
 //! A graph consists of metadata and topology relation.
 //! Industrial-IO topology relation contains `company`, `property` and `relationship`.
 
-pub mod category;
-pub mod company;
-pub mod industry;
-pub mod property;
-pub mod relationship;
-pub mod view;
+pub mod entity;
 
-pub use category::*;
-pub use company::*;
-pub use industry::*;
-pub use property::*;
-pub use relationship::*;
-pub use view::*;
+pub use entity::*;
 
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
