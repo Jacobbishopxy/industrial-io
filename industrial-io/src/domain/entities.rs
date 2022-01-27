@@ -77,6 +77,10 @@ impl Category {
             description: description.map(Into::into),
         }
     }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 }
 
 /// Entity Type

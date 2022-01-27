@@ -2,6 +2,60 @@
 
 An industrial chain app by using MongoDB as Graph Database
 
+## Structure
+
+```txt
+    .
+    ├── docs
+    │   └── mongo_aggregation.md
+    ├── iio-frontend
+    │   ├── pages
+    │   │   ├── api
+    │   │   │   └── hello.ts
+    │   │   ├── _app.tsx
+    │   │   └── index.tsx
+    │   ├── public
+    │   │   ├── favicon.ico
+    │   │   └── vercel.svg
+    │   ├── styles
+    │   │   ├── Home.module.css
+    │   │   └── globals.css
+    │   ├── next-env.d.ts
+    │   └── next.config.js
+    ├── industrial-io
+    │   ├── crud
+    │   │   └── src
+    │   │       ├── cache.rs
+    │   │       ├── lib.rs
+    │   │       └── persistence.rs
+    │   ├── crud-derive
+    │   │   └── src
+    │   │       └── lib.rs
+    │   └── src
+    │       ├── bin
+    │       ├── domain
+    │       │   ├── entities.rs
+    │       │   ├── handle_relationships.rs
+    │       │   ├── maintain_companies.rs
+    │       │   ├── maintain_properties.rs
+    │       │   ├── mod.rs
+    │       │   ├── objects.rs
+    │       │   ├── search_relationships.rs
+    │       │   └── show_catalog.rs
+    │       ├── infra
+    │       │   ├── mod.rs
+    │       │   └── provider.rs
+    │       ├── repository
+    │       │   ├── mod.rs
+    │       │   └── repo.rs
+    │       ├── errors.rs
+    │       └── lib.rs
+    ├── LICENSE
+    ├── Makefile
+    └── README.md
+
+```
+
 ## Concepts
 
 According to mongoDB official documentation, a graph database has four main concepts:

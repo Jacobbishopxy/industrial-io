@@ -10,24 +10,20 @@ use crate::TGResult;
 #[async_trait]
 pub trait Repository: Send + Sync {
     // ===========================================================================
-    // main
-    // ===========================================================================
-
-    async fn show_catalog(&self) -> TGResult<Vec<Category>>;
-
-    async fn get_metadata(&self, id: ID) -> TGResult<Category>;
-
-    async fn get_contents(&self, id: ID) -> TGResult<View>;
-
-    // ===========================================================================
     // category
     // ===========================================================================
+
+    async fn get_all_category(&self) -> TGResult<Vec<Category>>;
 
     async fn get_category(&self, id: ID) -> TGResult<Category>;
 
     async fn save_category(&self, category: Category) -> TGResult<Category>;
 
     async fn delete_category(&self, id: ID) -> TGResult<()>;
+
+    /// `View` is a collection who contains all the industrial data.
+    /// All the `View`s name must be unique.
+    async fn get_view(&self, name: &str) -> TGResult<View>;
 
     // ===========================================================================
     // company
