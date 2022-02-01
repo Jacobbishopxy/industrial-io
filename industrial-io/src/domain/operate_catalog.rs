@@ -2,7 +2,7 @@
 //!
 //! Bushiness logic of catalog.
 
-use crate::domain::{Category, View, ID};
+use crate::entities::{Category, View, ID};
 use crate::repository::Repository;
 use crate::TGResult;
 

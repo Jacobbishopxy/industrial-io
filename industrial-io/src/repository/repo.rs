@@ -4,7 +4,7 @@
 
 use async_trait::async_trait;
 
-use crate::domain::*;
+use crate::entities::*;
 use crate::TGResult;
 
 #[async_trait]

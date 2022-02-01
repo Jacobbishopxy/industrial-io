@@ -115,3 +115,16 @@ impl Default for EdgeOption {
         }
     }
 }
+
+/// Entity Type
+///
+/// The type of an entity.
+/// An industrial graph, who contains different types of entities,
+/// will be saved in a single collection. Hence, entity type turns
+/// out to be the only unique identifier of an entity.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum EntityType {
+    Company,
+    Property,
+    Relationship,
+}
