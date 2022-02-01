@@ -10,7 +10,7 @@ use serde_json::value::Value as JsonValue;
 
 use super::{EntityType, VertexOption, ID};
 
-#[derive(Serialize, Deserialize, Debug, Clone, GrantCRUD)]
+#[derive(Serialize, Deserialize, Debug, Clone, CRUD)]
 pub struct Property {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ID>,

@@ -1,24 +1,8 @@
-[package]
-name = "industrial-io"
-authors = ["JacobX <jacobbishopxy@gmail.com>"]
-version = "0.1.0"
-edition = "2021"
-
-
-[lib]
-name = "industrialio"
-crate-type = ["rlib", "cdylib"]
 
 [workspace]
-members = [".", "crud-derive", "crud"]
-
-[dependencies]
-crud = { path = "./crud" }
-anyhow = "1"
-async-trait = "0"
-bson = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "1"
-tokio = "1"
-tokio-stream = "0"
+members = [
+  "app",
+  "crud-derive",
+  "crud",
+  "domain",
+]

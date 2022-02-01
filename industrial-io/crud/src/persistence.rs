@@ -79,7 +79,7 @@ pub trait IDMutator {
 }
 
 #[async_trait]
-pub trait CRUD<TYPE>: MongoClientFactory
+pub trait MongoCRUD<TYPE>: MongoClientFactory
 where
     TYPE: Send + Sync + Clone + Serialize + DeserializeOwned + Unpin + IDMutator,
 {

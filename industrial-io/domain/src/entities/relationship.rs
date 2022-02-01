@@ -9,7 +9,7 @@ use serde_json::value::Value as JsonValue;
 
 use super::{EdgeOption, EntityType, Weight, ID};
 
-#[derive(Serialize, Deserialize, Debug, Clone, GrantCRUD)]
+#[derive(Serialize, Deserialize, Debug, Clone, CRUD)]
 pub struct Relationship {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ID>,

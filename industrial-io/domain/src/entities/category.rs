@@ -7,7 +7,7 @@ use super::ID;
 
 /// Catalog of all graphs.
 /// A category is a collection of one specific graph.
-#[derive(Serialize, Deserialize, Debug, Clone, Default, GrantCRUD)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, CRUD)]
 pub struct Category {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ID>,

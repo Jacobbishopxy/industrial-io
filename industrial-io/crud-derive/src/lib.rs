@@ -8,7 +8,7 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident};
 const ID: &str = "id";
 const OID: &str = "oid";
 
-#[proc_macro_derive(GrantCRUD, attributes(oid))]
+#[proc_macro_derive(CRUD, attributes(oid))]
 pub fn derive_crud(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree
     let input = parse_macro_input!(input as DeriveInput);
@@ -84,7 +84,7 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
         }
 
         #[async_trait::async_trait]
-        impl CRUD<#name> for crud::MongoClient {}
+        impl MongoCRUD<#name> for crud::MongoClient {}
     };
 
     expanded
