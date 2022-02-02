@@ -19,7 +19,7 @@ impl<T: Repository> OperateCatalog<T> {
         self.repo.get_all_category().await
     }
 
-    pub async fn get_view_metadata(&self, id: ID) -> TGResult<Category> {
+    pub async fn get_view_metadata(&self, id: ID) -> TGResult<Option<Category>> {
         self.repo.get_category(id).await
     }
 
@@ -27,18 +27,18 @@ impl<T: Repository> OperateCatalog<T> {
         self.repo.save_category(category).await
     }
 
-    pub async fn delete_view_metadata(&self, id: ID) -> TGResult<()> {
+    pub async fn delete_view_metadata(&self, id: ID) -> TGResult<Option<Category>> {
         self.repo.delete_category(id).await
     }
 
-    pub async fn get_view_by_name(&self, name: &str) -> TGResult<View> {
+    pub async fn get_view_by_name(&self, name: &str) -> TGResult<Option<View>> {
         self.repo.get_view(name).await
     }
 
-    pub async fn get_view_by_category_id(&self, id: ID) -> TGResult<View> {
-        let category = self.repo.get_category(id).await?;
-        let view_name = category.name();
-
-        self.repo.get_view(view_name).await
+    pub async fn get_view_by_category_id(&self, id: ID) -> TGResult<Option<View>> {
+        match self.repo.get_category(id).await? {
+            Some(cat) => self.repo.get_view(cat.name()).await,
+            None => Ok(None),
+        }
     }
 }

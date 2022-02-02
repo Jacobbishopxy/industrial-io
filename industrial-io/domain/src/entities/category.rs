@@ -11,6 +11,7 @@ use super::ID;
 pub struct Category {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ID>,
+    // TODO: unique name, needs `mongodb::options::IndexOptions` when initializing a collection
     pub name: String,
     pub description: Option<String>,
 }

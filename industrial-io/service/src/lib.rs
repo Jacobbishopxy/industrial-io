@@ -5,7 +5,7 @@
 pub mod provider;
 
 use async_trait::async_trait;
-// use crud::*;
+use crud::*;
 use domain::entities::{Category, Company, Property, Relationship, View, ID};
 use domain::{Repository, TGResult};
 use provider::Provider;
@@ -13,22 +13,22 @@ use provider::Provider;
 #[async_trait]
 impl Repository for Provider {
     async fn get_all_category(&self) -> TGResult<Vec<Category>> {
-        unimplemented!()
+        self.persistence_client.read_all().await
     }
 
-    async fn get_category(&self, id: ID) -> TGResult<Category> {
-        unimplemented!()
+    async fn get_category(&self, id: ID) -> TGResult<Option<Category>> {
+        self.persistence_client.read(id).await
     }
 
     async fn save_category(&self, category: Category) -> TGResult<Category> {
-        unimplemented!()
+        self.persistence_client.create(category).await
     }
 
-    async fn delete_category(&self, id: ID) -> TGResult<()> {
-        unimplemented!()
+    async fn delete_category(&self, id: ID) -> TGResult<Option<Category>> {
+        self.persistence_client.delete(id).await
     }
 
-    async fn get_view(&self, name: &str) -> TGResult<View> {
+    async fn get_view(&self, name: &str) -> TGResult<Option<View>> {
         unimplemented!()
     }
 
@@ -36,7 +36,7 @@ impl Repository for Provider {
     // company
     // ===========================================================================
 
-    async fn get_company(&self, id: ID) -> TGResult<Company> {
+    async fn get_company(&self, id: ID) -> TGResult<Option<Company>> {
         unimplemented!()
     }
 
@@ -44,7 +44,7 @@ impl Repository for Provider {
         unimplemented!()
     }
 
-    async fn delete_company(&self, id: ID) -> TGResult<()> {
+    async fn delete_company(&self, id: ID) -> TGResult<Option<Company>> {
         unimplemented!()
     }
 
@@ -52,7 +52,7 @@ impl Repository for Provider {
     // property
     // ===========================================================================
 
-    async fn get_property(&self, id: ID) -> TGResult<Property> {
+    async fn get_property(&self, id: ID) -> TGResult<Option<Property>> {
         unimplemented!()
     }
 
@@ -60,7 +60,7 @@ impl Repository for Provider {
         unimplemented!()
     }
 
-    async fn delete_property(&self, id: ID) -> TGResult<()> {
+    async fn delete_property(&self, id: ID) -> TGResult<Option<Property>> {
         unimplemented!()
     }
 
@@ -68,7 +68,7 @@ impl Repository for Provider {
     // relationship
     // ===========================================================================
 
-    async fn get_relationship(&self, id: ID) -> TGResult<Relationship> {
+    async fn get_relationship(&self, id: ID) -> TGResult<Option<Relationship>> {
         unimplemented!()
     }
 
@@ -76,7 +76,7 @@ impl Repository for Provider {
         unimplemented!()
     }
 
-    async fn delete_relationship(&self, id: ID) -> TGResult<()> {
+    async fn delete_relationship(&self, id: ID) -> TGResult<Option<Relationship>> {
         unimplemented!()
     }
 }

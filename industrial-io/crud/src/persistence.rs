@@ -16,7 +16,7 @@ pub struct MongoClient {
 }
 
 impl MongoClient {
-    pub async fn new<U, T>(uri: U, database: T, collection: T) -> anyhow::Result<Self>
+    pub async fn new<U, T>(uri: U, database: T, collection: T) -> Result<Self>
     where
         U: AsRef<str>,
         T: Into<String>,
@@ -40,10 +40,23 @@ impl MongoClient {
         self.collection = collection.into();
     }
 
-    pub async fn show_dbs(&self) -> anyhow::Result<Vec<String>> {
+    /// show databases name
+    pub async fn show_dbs(&self) -> Result<Vec<String>> {
         let dbs = self.client.list_database_names(None, None).await?;
         Ok(dbs)
     }
+
+    /// show collections name in a database
+    pub async fn show_collections(&self) -> Result<Vec<String>> {
+        let collections = self
+            .client
+            .database(&self.database)
+            .list_collection_names(None)
+            .await?;
+        Ok(collections)
+    }
+
+    // TODO: create_index
 }
 
 pub trait MongoClientFactory: Send + Sync {
@@ -132,6 +145,19 @@ where
             .await
     }
 
+    /// Read all documents
+    async fn read_all<'a>(&'a self) -> Result<Vec<TYPE>>
+    where
+        TYPE: 'a,
+    {
+        self.coll::<TYPE>()
+            .find(None, None)
+            .await?
+            .map(|v| v.map_err(anyhow::Error::from))
+            .collect::<Result<Vec<_>>>()
+            .await
+    }
+
     /// Update an existing document
     async fn update<'a>(&'a self, value: TYPE) -> Result<TYPE>
     where
@@ -147,13 +173,16 @@ where
     }
 
     /// Delete an existing document
-    async fn delete<'a>(&'a self, id: ObjectId) -> Result<()>
+    async fn delete<'a>(&'a self, id: ObjectId) -> Result<Option<TYPE>>
     where
         TYPE: 'a,
     {
         let filter = doc! {"_id": id};
-        self.coll::<TYPE>().delete_one(filter, None).await?;
-        Ok(())
+        let result = self
+            .coll::<TYPE>()
+            .find_one_and_delete(filter, None)
+            .await?;
+        Ok(result)
     }
 }
 
