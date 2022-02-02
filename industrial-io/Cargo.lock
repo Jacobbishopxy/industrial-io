@@ -151,7 +151,6 @@ dependencies = [
  "mongodb",
  "redis",
  "serde",
- "serde_json",
  "tokio",
  "tokio-stream",
 ]
@@ -996,6 +995,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "service"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "crud",
+ "domain",
+ "tokio",
 ]
 
 [[package]]

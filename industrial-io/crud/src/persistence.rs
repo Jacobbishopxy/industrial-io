@@ -16,16 +16,28 @@ pub struct MongoClient {
 }
 
 impl MongoClient {
-    pub async fn new(uri: &str, database: &str, collection: &str) -> anyhow::Result<Self> {
-        let co = mongodb::options::ClientOptions::parse(uri).await?;
+    pub async fn new<U, T>(uri: U, database: T, collection: T) -> anyhow::Result<Self>
+    where
+        U: AsRef<str>,
+        T: Into<String>,
+    {
+        let co = mongodb::options::ClientOptions::parse(uri.as_ref()).await?;
 
         let client = mongodb::Client::with_options(co)?;
 
         Ok(MongoClient {
             client,
-            database: database.to_string(),
-            collection: collection.to_string(),
+            database: database.into(),
+            collection: collection.into(),
         })
+    }
+
+    pub fn set_database<T: Into<String>>(&mut self, database: T) {
+        self.database = database.into();
+    }
+
+    pub fn set_collection<T: Into<String>>(&mut self, collection: T) {
+        self.collection = collection.into();
     }
 
     pub async fn show_dbs(&self) -> anyhow::Result<Vec<String>> {

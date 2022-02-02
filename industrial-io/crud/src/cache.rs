@@ -8,10 +8,9 @@ pub struct RedisClient {
     connection: Arc<redis::aio::Connection>,
 }
 
-#[allow(dead_code)]
 impl RedisClient {
-    pub async fn new(uri: &str) -> anyhow::Result<Self> {
-        let client = redis::Client::open(uri)?;
+    pub async fn new<U: AsRef<str>>(uri: U) -> anyhow::Result<Self> {
+        let client = redis::Client::open(uri.as_ref())?;
         let connection = client.get_async_connection().await?;
         let connection = Arc::new(connection);
 

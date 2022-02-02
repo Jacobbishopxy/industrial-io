@@ -5,4 +5,5 @@ members = [
   "crud-derive",
   "crud",
   "domain",
+  "service",
 ]
