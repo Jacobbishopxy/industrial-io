@@ -1,6 +1,6 @@
 //! Industrial IO
 
-pub mod domain;
+pub mod actions;
 pub mod entities;
 pub mod errors;
 pub mod repository;

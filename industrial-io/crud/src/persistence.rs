@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use bson::{doc, oid::ObjectId, to_document};
+use mongodb::IndexModel;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio_stream::StreamExt;
 
@@ -56,7 +57,16 @@ impl MongoClient {
         Ok(collections)
     }
 
-    // TODO: create_index
+    /// create index
+    pub async fn create_index<T>(&self, index: IndexModel) -> Result<String> {
+        let result = self
+            .client
+            .database(&self.database)
+            .collection::<T>(&self.collection)
+            .create_index(index, None)
+            .await?;
+        Ok(result.index_name)
+    }
 }
 
 pub trait MongoClientFactory: Send + Sync {
