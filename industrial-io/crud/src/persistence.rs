@@ -57,7 +57,21 @@ impl MongoClient {
         Ok(collections)
     }
 
+    /// list all indexes in a collection
+    /// T is the type of the document
+    pub async fn list_indexes<T>(&self) -> Result<Vec<IndexModel>> {
+        self.client
+            .database(&self.database)
+            .collection::<T>(&self.collection)
+            .list_indexes(None)
+            .await?
+            .map(|v| v.map_err(anyhow::Error::from))
+            .collect::<Result<Vec<_>>>()
+            .await
+    }
+
     /// create index
+    /// T is the type of the document
     pub async fn create_index<T>(&self, index: IndexModel) -> Result<String> {
         let result = self
             .client

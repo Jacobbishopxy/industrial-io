@@ -4,15 +4,20 @@
 
 use quote::quote;
 use syn::{
-    parse_macro_input, punctuated::Punctuated, token::Comma, Attribute, Data, DeriveInput, Field,
-    Fields, Ident, Lit, Meta,
+    parse_macro_input, punctuated::Punctuated, token::Comma, Data, DeriveInput, Field, Fields,
+    Ident, Meta, NestedMeta,
 };
 
 const ID: &str = "id";
 const OID: &str = "oid";
 const INDEX: &str = "index";
+const ASC: &str = "asc";
+const DESC: &str = "desc";
+const UNIQUE: &str = "unique";
+const TEXT: &str = "text";
+const INDEX_OPTIONS: &[&str] = &[ASC, DESC, UNIQUE, TEXT];
 
-#[proc_macro_derive(CRUD, attributes(crud, oid))]
+#[proc_macro_derive(CRUD, attributes(index, oid))]
 pub fn derive_crud(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree
     let input = parse_macro_input!(input as DeriveInput);
@@ -25,64 +30,101 @@ pub fn derive_crud(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::from(stream)
 }
 
-/// find out the field whose name is `id`
-fn get_field_id(ast: &DeriveInput) -> Option<Ident> {
-    match ast.data {
-        Data::Struct(ref data) => match data.fields {
-            Fields::Named(ref fields) => {
-                for field in fields.named.iter() {
-                    if field.ident.as_ref().unwrap() == ID {
-                        return Some(field.ident.as_ref().unwrap().clone());
-                    }
-                }
-                None
+type NamedFields = Punctuated<Field, Comma>;
+
+fn named_fields(ast: &DeriveInput) -> NamedFields {
+    match &ast.data {
+        Data::Struct(s) => {
+            if let Fields::Named(ref named_fields) = s.fields {
+                named_fields.named.clone()
+            } else {
+                unimplemented!("derive(Builder) only supports named fields")
             }
-            _ => None,
-        },
-        _ => None,
+        }
+        other => unimplemented!(
+            "CRUD only supports Struct and is not implemented for {:?}",
+            other
+        ),
     }
 }
 
-/// find out the field whose attribute is `oid`
-fn get_attr_oid(ast: &DeriveInput) -> Option<Ident> {
-    ast.attrs.iter().find_map(|attr| {
-        if attr.path.segments.len() == 1 && attr.path.segments[0].ident == OID {
-            match attr.tokens.clone().into_iter().next() {
-                Some(proc_macro2::TokenTree::Ident(ident)) => Some(ident),
-                _ => None,
-            }
-        } else {
-            None
+/// find out whether a field name is `id`
+fn get_field_id(named_fields: &NamedFields) -> Option<Ident> {
+    for field in named_fields.iter() {
+        if field.ident.as_ref().unwrap() == ID {
+            return Some(field.ident.as_ref().unwrap().clone());
         }
-    })
+    }
+    None
 }
 
-// TODO: `index(asc/desc,unique,text)`
-/// find out the field whose attribute is `index`
-fn get_attr_index(ast: &DeriveInput) -> Option<Ident> {
-    match ast.data {
-        Data::Struct(ref data) => match data.fields {
-            Fields::Named(ref fields) => {
-                for field in fields.named.iter() {
-                    let field_name = field.ident.as_ref().unwrap().to_string();
-
-                    todo!()
+/// find out a field whose attribute is `oid`
+fn get_attr_oid(named_fields: &NamedFields) -> Option<Ident> {
+    for field in named_fields.iter() {
+        for attr in field.attrs.iter() {
+            if let Ok(Meta::Path(path)) = attr.parse_meta() {
+                if path.segments.len() == 1 && path.is_ident(OID) {
+                    return Some(field.ident.as_ref().unwrap().clone());
                 }
-                None
             }
-            _ => None,
-        },
-        _ => None,
+        }
+    }
+    None
+}
+
+enum Dir {
+    Asc,
+    Desc,
+}
+
+struct IndexOption {
+    name: String,
+    dir: Dir,
+    unique: bool,
+    text: bool,
+}
+
+// TODO: read from fields' attributes and form an `IndexOption`
+fn index_format(named_fields: &NamedFields) {
+    for field in named_fields.iter() {
+        // let ident = field.ident.as_ref().unwrap();
+        // let ty = &field.ty;
+        for attr in field.attrs.iter() {
+            if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
+                if meta_list.path.segments.len() == 1 && meta_list.path.is_ident(INDEX) {
+                    let ml = meta_list
+                        .nested
+                        .iter()
+                        .filter_map(|nm| {
+                            if let NestedMeta::Meta(Meta::Path(path)) = nm {
+                                if path.segments.len() == 1 {
+                                    let ident = path.get_ident().unwrap().to_string();
+                                    if INDEX_OPTIONS.contains(&ident.as_str()) {
+                                        return Some(ident);
+                                    }
+                                }
+                            }
+                            None
+                        })
+                        .collect::<Vec<_>>();
+                    println!(
+                        "ml: {:?} -> {:?}",
+                        field.ident.as_ref().unwrap().to_string(),
+                        ml
+                    );
+                }
+            }
+        }
     }
 }
 
 fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
     let name = input.ident.clone();
-    println!("{:?}", name.to_string());
     let named_fields = named_fields(input);
-    field_format(&named_fields);
+    index_format(&named_fields);
 
-    let id = match (get_field_id(input), get_attr_oid(input)) {
+    // get ID either from field `id` or field whose attribute is `oid`
+    let id = match (get_field_id(&named_fields), get_attr_oid(&named_fields)) {
         (Some(id), _) => id,
         (None, Some(oid)) => oid,
         _ => panic!("No `id` field nor `oid` attribute were found!"),
@@ -115,53 +157,4 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
     };
 
     expanded
-}
-
-fn attr_error<T: quote::ToTokens>(tokens: T) -> syn::Error {
-    syn::Error::new_spanned(tokens, "expected `debug(bound = \"...\")`")
-}
-
-type NamedFields = Punctuated<Field, Comma>;
-
-fn named_fields(ast: &DeriveInput) -> NamedFields {
-    match &ast.data {
-        Data::Struct(s) => {
-            if let Fields::Named(ref named_fields) = s.fields {
-                named_fields.named.clone()
-            } else {
-                unimplemented!("derive(Builder) only supports named fields")
-            }
-        }
-        other => unimplemented!(
-            "CRUD only supports Struct and is not implemented for {:?}",
-            other
-        ),
-    }
-}
-
-fn field_format(named_fields: &NamedFields) {
-    for field in named_fields.iter() {
-        // let ident = field.ident.as_ref().unwrap();
-        // let ty = &field.ty;
-        for attr in field.attrs.iter() {
-            match attr.parse_meta() {
-                Ok(Meta::List(meta_list)) => {
-                    let ml = meta_list.nested.iter().collect::<Vec<_>>();
-                    println!(
-                        "ml: {:?} -> {:?}",
-                        field.ident.as_ref().unwrap().to_string(),
-                        ml
-                    );
-                }
-                Ok(Meta::Path(path)) => {
-                    println!(
-                        "path: {:?} -> {:?}",
-                        field.ident.as_ref().unwrap().to_string(),
-                        path
-                    );
-                }
-                _ => {}
-            }
-        }
-    }
 }
