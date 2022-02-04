@@ -4,16 +4,16 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, CRUD)]
 struct TestCrud {
-    #[oid]
-    myid: Option<ID>,
-    #[index(unique, asc, text)]
+    #[crud(id, index = "unique,desc")]
+    idx: Option<ID>,
+    #[crud(index = "unique,asc,text")]
     name: String,
 }
 
 #[test]
 fn test_custom_derive() {
     let test_crud = TestCrud {
-        myid: None,
+        idx: None,
         name: "test".to_string(),
     };
 
