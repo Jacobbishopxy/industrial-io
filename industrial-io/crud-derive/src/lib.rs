@@ -4,7 +4,7 @@
 
 use std::str::FromStr;
 
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Attribute, Data, DeriveInput, Field,
     Fields, Ident, Lit, Meta, NestedMeta,
@@ -19,13 +19,13 @@ const DESC: &str = "desc";
 const UNIQUE: &str = "unique";
 const TEXT: &str = "text";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Dir {
     Asc,
     Desc,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct IndexOptions {
     name: String,
     dir: Dir,
@@ -57,6 +57,38 @@ impl FromStr for IndexOptions {
             _ => {}
         });
         Ok(options)
+    }
+}
+
+impl ToTokens for Dir {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(match self {
+            Dir::Asc => quote! { crud::Dir::Asc },
+            Dir::Desc => quote! { crud::Dir::Desc },
+        })
+    }
+}
+
+impl ToTokens for IndexOptions {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = &self.name;
+        let dir = &self.dir;
+        let unique = &self.unique;
+        let text = &self.text;
+        tokens.extend(quote! {
+            crud::IndexOptions::new(#name, #dir, #unique, #text)
+        })
+    }
+}
+
+struct IndexOptionsCollection(Vec<IndexOptions>);
+
+impl ToTokens for IndexOptionsCollection {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let d = &self.0;
+        tokens.extend(quote! {
+            vec![#(#d),*]
+        })
     }
 }
 
@@ -211,10 +243,8 @@ fn index_format(named_fields: &NamedFields) -> Vec<IndexOptions> {
 fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
     let name = input.ident.clone();
     let named_fields = named_fields(input);
-
-    // TODO: new impl for creating index
     let index_info = index_format(&named_fields);
-    println!("1 >>> {:?} -> {:?}", name.to_string(), index_info);
+    let ioc = IndexOptionsCollection(index_info);
 
     // get ID either from field `id` or field whose attribute is `oid`
     let id = match (get_field_id(&named_fields), get_attr_oid(&named_fields)) {
@@ -224,8 +254,8 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
     };
 
     let expanded = quote! {
-        impl IDMutator for #name {
-            fn id(&self) -> Option<bson::oid::ObjectId> {
+        impl BaseCRUD for #name {
+            fn get_id(&self) -> ::std::option::Option<bson::oid::ObjectId> {
                 self.#id
             }
 
@@ -236,6 +266,10 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
             fn mutate_id(&mut self, oid: bson::oid::ObjectId) -> anyhow::Result<()> {
                 self.#id = Some(oid);
                 Ok(())
+            }
+
+            fn show_indexes(&self) -> ::std::vec::Vec<crud::IndexOptions> {
+                #ioc
             }
         }
 

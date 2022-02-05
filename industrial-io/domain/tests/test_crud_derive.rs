@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 struct TestCrud {
     #[crud(id, index = "unique,desc")]
     idx: Option<ID>,
-    #[crud(index = "unique,asc,text")]
+    #[crud(index = "unique,text")]
     name: String,
 }
 
@@ -17,5 +17,7 @@ fn test_custom_derive() {
         name: "test".to_string(),
     };
 
-    println!("{:?}", test_crud);
+    let indexes = test_crud.show_indexes();
+
+    println!("{:?}", indexes);
 }

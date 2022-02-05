@@ -81,6 +81,17 @@ impl MongoClient {
             .await?;
         Ok(result.index_name)
     }
+
+    /// drop index
+    /// T is the type of the document
+    pub async fn drop_index<T>(&self, index_name: &str) -> Result<()> {
+        self.client
+            .database(&self.database)
+            .collection::<T>(&self.collection)
+            .drop_index(index_name, None)
+            .await?;
+        Ok(())
+    }
 }
 
 pub trait MongoClientFactory: Send + Sync {
@@ -119,18 +130,64 @@ impl MongoClientFactory for MongoClient {
     }
 }
 
-pub trait IDMutator {
-    fn id(&self) -> Option<ObjectId>;
+#[derive(Debug, Clone)]
+pub enum Dir {
+    Asc,
+    Desc,
+}
+
+#[derive(Debug, Clone)]
+pub struct IndexOptions {
+    pub name: String,
+    pub dir: Dir,
+    pub unique: bool,
+    pub text: bool,
+}
+
+impl IndexOptions {
+    pub fn new(name: &str, dir: Dir, unique: bool, text: bool) -> Self {
+        IndexOptions {
+            name: name.to_string(),
+            dir,
+            unique,
+            text,
+        }
+    }
+}
+
+pub trait BaseCRUD {
+    fn get_id(&self) -> Option<ObjectId>;
 
     fn remove_id(&mut self);
 
     fn mutate_id(&mut self, oid: ObjectId) -> Result<()>;
+
+    /// show `Vec<indexOptions>`
+    fn show_indexes(&self) -> Vec<IndexOptions>;
+}
+
+#[test]
+fn test_into_vec() {
+    IndexOptions::into_vec(Box::new([
+        IndexOptions {
+            name: "name".to_string(),
+            dir: Dir::Asc,
+            unique: true,
+            text: false,
+        },
+        IndexOptions {
+            name: "name".to_string(),
+            dir: Dir::Desc,
+            unique: true,
+            text: false,
+        },
+    ]))
 }
 
 #[async_trait]
 pub trait MongoCRUD<TYPE>: MongoClientFactory
 where
-    TYPE: Send + Sync + Clone + Serialize + DeserializeOwned + Unpin + IDMutator,
+    TYPE: Send + Sync + Clone + Serialize + DeserializeOwned + Unpin + BaseCRUD,
 {
     /// Create a new document
     async fn create<'a>(&'a self, mut value: TYPE) -> Result<TYPE>
@@ -188,7 +245,7 @@ where
         TYPE: 'a,
     {
         let oid = value
-            .id()
+            .get_id()
             .ok_or_else(|| anyhow!("No `id` field was found!"))?;
         let filter = doc! {"_id": oid};
         let update = doc! {"$set": to_document(&value).unwrap()};
