@@ -57,12 +57,12 @@ impl MongoClient {
         Ok(collections)
     }
 
+    // TODO: turn `IndexOptions` into `mongodb::IndexModel`
+
     /// list all indexes in a collection
     /// T is the type of the document
     pub async fn list_indexes<T>(&self) -> Result<Vec<IndexModel>> {
-        self.client
-            .database(&self.database)
-            .collection::<T>(&self.collection)
+        self.schema::<T>()
             .list_indexes(None)
             .await?
             .map(|v| v.map_err(anyhow::Error::from))
@@ -73,37 +73,33 @@ impl MongoClient {
     /// create index
     /// T is the type of the document
     pub async fn create_index<T>(&self, index: IndexModel) -> Result<String> {
-        let result = self
-            .client
-            .database(&self.database)
-            .collection::<T>(&self.collection)
-            .create_index(index, None)
-            .await?;
+        let result = self.schema::<T>().create_index(index, None).await?;
         Ok(result.index_name)
     }
 
     /// drop index
     /// T is the type of the document
     pub async fn drop_index<T>(&self, index_name: &str) -> Result<()> {
-        self.client
-            .database(&self.database)
-            .collection::<T>(&self.collection)
-            .drop_index(index_name, None)
-            .await?;
+        self.schema::<T>().drop_index(index_name, None).await?;
         Ok(())
     }
 }
 
 pub trait MongoClientFactory: Send + Sync {
+    /// get database
     fn database(&self) -> Cow<str>;
 
+    /// set database
     fn set_database(&mut self, database: &str);
 
+    /// get collection
     fn collection(&self) -> Cow<str>;
 
+    /// set collection
     fn set_collection(&mut self, collection: &str);
 
-    fn coll<T>(&self) -> mongodb::Collection<T>;
+    /// get typed collection
+    fn schema<T>(&self) -> mongodb::Collection<T>;
 }
 
 impl MongoClientFactory for MongoClient {
@@ -123,7 +119,7 @@ impl MongoClientFactory for MongoClient {
         self.collection = collection.to_string();
     }
 
-    fn coll<T>(&self) -> mongodb::Collection<T> {
+    fn schema<T>(&self) -> mongodb::Collection<T> {
         self.client
             .database(&self.database)
             .collection(&self.collection)
@@ -155,6 +151,10 @@ impl IndexOptions {
     }
 }
 
+/// BaseCRUD trait
+///
+/// A Rust struct that implements this trait is a schema of MongoDB's collection.
+/// According to the `crud` crate, any struct who derived `CRUD` will automatically implement this trait.
 pub trait BaseCRUD {
     fn get_id(&self) -> Option<ObjectId>;
 
@@ -166,24 +166,10 @@ pub trait BaseCRUD {
     fn show_indexes(&self) -> Vec<IndexOptions>;
 }
 
-#[test]
-fn test_into_vec() {
-    IndexOptions::into_vec(Box::new([
-        IndexOptions {
-            name: "name".to_string(),
-            dir: Dir::Asc,
-            unique: true,
-            text: false,
-        },
-        IndexOptions {
-            name: "name".to_string(),
-            dir: Dir::Desc,
-            unique: true,
-            text: false,
-        },
-    ]))
-}
-
+/// MongoCRUD trait
+///
+/// According to `crud` crate, any struct who derived `CRUD` will automatically implement this trait.
+/// In other words, `MongoClient` can use methods in this trait to persist `TYPE` data.
 #[async_trait]
 pub trait MongoCRUD<TYPE>: MongoClientFactory
 where
@@ -196,7 +182,10 @@ where
     {
         // in case of `id` field exists, we need to remove it
         value.remove_id();
-        let insert = self.coll::<TYPE>().insert_one(value.clone(), None).await?;
+        let insert = self
+            .schema::<TYPE>()
+            .insert_one(value.clone(), None)
+            .await?;
         let oid = insert.inserted_id.as_object_id().unwrap();
         value.mutate_id(oid)?;
         Ok(value)
@@ -208,7 +197,7 @@ where
         TYPE: 'a,
     {
         let filter = doc! { "_id": id };
-        let result = self.coll::<TYPE>().find_one(filter, None).await?;
+        let result = self.schema::<TYPE>().find_one(filter, None).await?;
         Ok(result)
     }
 
@@ -218,7 +207,7 @@ where
         TYPE: 'a,
     {
         let filter = doc! { "_id": { "$in": ids } };
-        self.coll::<TYPE>()
+        self.schema::<TYPE>()
             .find(filter, None)
             .await?
             .map(|v| v.map_err(anyhow::Error::from))
@@ -231,7 +220,7 @@ where
     where
         TYPE: 'a,
     {
-        self.coll::<TYPE>()
+        self.schema::<TYPE>()
             .find(None, None)
             .await?
             .map(|v| v.map_err(anyhow::Error::from))
@@ -249,7 +238,9 @@ where
             .ok_or_else(|| anyhow!("No `id` field was found!"))?;
         let filter = doc! {"_id": oid};
         let update = doc! {"$set": to_document(&value).unwrap()};
-        self.coll::<TYPE>().update_one(filter, update, None).await?;
+        self.schema::<TYPE>()
+            .update_one(filter, update, None)
+            .await?;
         Ok(value)
     }
 
@@ -260,27 +251,9 @@ where
     {
         let filter = doc! {"_id": id};
         let result = self
-            .coll::<TYPE>()
+            .schema::<TYPE>()
             .find_one_and_delete(filter, None)
             .await?;
         Ok(result)
-    }
-}
-
-#[cfg(test)]
-mod test_persistence {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_show_dbs() {
-        let uri = "mongodb://root:secret@localhost:27017";
-
-        let client = MongoClient::new(uri, "test", "dev").await;
-        assert!(client.is_ok());
-
-        let client = client.unwrap();
-
-        let dbs = client.show_dbs().await;
-        assert!(dbs.is_ok());
     }
 }
