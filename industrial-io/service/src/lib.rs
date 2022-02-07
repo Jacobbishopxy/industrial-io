@@ -28,7 +28,7 @@ impl Repository for Provider {
         self.persistence_client.delete(id).await
     }
 
-    async fn get_view(&self, name: &str) -> TGResult<Option<View>> {
+    async fn get_view(&self, _name: &str) -> TGResult<Option<View>> {
         unimplemented!()
     }
 
@@ -36,15 +36,15 @@ impl Repository for Provider {
     // company
     // ===========================================================================
 
-    async fn get_company(&self, id: ID) -> TGResult<Option<Company>> {
+    async fn get_company(&self, _id: ID) -> TGResult<Option<Company>> {
         unimplemented!()
     }
 
-    async fn save_company(&self, company: Company) -> TGResult<Company> {
+    async fn save_company(&self, _company: Company) -> TGResult<Company> {
         unimplemented!()
     }
 
-    async fn delete_company(&self, id: ID) -> TGResult<Option<Company>> {
+    async fn delete_company(&self, _id: ID) -> TGResult<Option<Company>> {
         unimplemented!()
     }
 
@@ -52,15 +52,15 @@ impl Repository for Provider {
     // property
     // ===========================================================================
 
-    async fn get_property(&self, id: ID) -> TGResult<Option<Property>> {
+    async fn get_property(&self, _id: ID) -> TGResult<Option<Property>> {
         unimplemented!()
     }
 
-    async fn save_property(&self, property: Property) -> TGResult<Property> {
+    async fn save_property(&self, _property: Property) -> TGResult<Property> {
         unimplemented!()
     }
 
-    async fn delete_property(&self, id: ID) -> TGResult<Option<Property>> {
+    async fn delete_property(&self, _id: ID) -> TGResult<Option<Property>> {
         unimplemented!()
     }
 
@@ -68,15 +68,15 @@ impl Repository for Provider {
     // relationship
     // ===========================================================================
 
-    async fn get_relationship(&self, id: ID) -> TGResult<Option<Relationship>> {
+    async fn get_relationship(&self, _id: ID) -> TGResult<Option<Relationship>> {
         unimplemented!()
     }
 
-    async fn save_relationship(&self, relationship: Relationship) -> TGResult<Relationship> {
+    async fn save_relationship(&self, _relationship: Relationship) -> TGResult<Relationship> {
         unimplemented!()
     }
 
-    async fn delete_relationship(&self, id: ID) -> TGResult<Option<Relationship>> {
+    async fn delete_relationship(&self, _id: ID) -> TGResult<Option<Relationship>> {
         unimplemented!()
     }
 }

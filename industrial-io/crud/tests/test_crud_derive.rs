@@ -7,7 +7,7 @@ struct TestCrud {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     #[crud(id)]
     idx: Option<ObjectId>,
-    #[crud(index = "unique,text")]
+    #[crud(single_index = "unique,text")]
     name: String,
     data: Option<String>,
 }

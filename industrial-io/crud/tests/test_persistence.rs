@@ -9,9 +9,9 @@ const CL: &str = "dev";
 #[derive(Debug, Serialize, Deserialize, Clone, CRUD, PartialEq)]
 struct TestCrud {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    #[crud(id, index = "unique,desc")]
+    #[crud(id)]
     idx: Option<ObjectId>,
-    #[crud(index = "unique,text")]
+    #[crud(single_index = "unique,text")]
     name: String,
     content: Option<String>,
     version: i32,
@@ -58,11 +58,43 @@ async fn test_curd_operations() {
     let read = read.unwrap().unwrap();
     println!("read: {:?}", read);
     assert_eq!(create, read);
+
+    let mut update_value = read;
+    update_value.name = "update".to_string();
+    update_value.version += 1;
+
+    let update = client.update(update_value).await;
+    assert!(update.is_ok());
+
+    let update = update.unwrap();
+    println!("update: {:?}", update);
+    assert_eq!(update.name, "update");
+    assert_eq!(update.version, 2);
+
+    let delete = client.delete(update.idx.unwrap()).await;
+    assert!(delete.is_ok());
+
+    let delete = delete.unwrap().unwrap();
+    println!("delete: {:?}", delete);
+    assert_eq!(update, delete);
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, CRUD, PartialEq)]
+struct TestCompoundIndexCrud {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    id: Option<ObjectId>,
+    #[crud(compound_index = "unique")]
+    name: String,
+    #[crud(compound_index)]
+    age: u32,
+    content: Option<String>,
+    version: i32,
 }
 
 #[tokio::test]
 async fn test_indexes_operations() {
-    let _client = MongoClient::new(URI, DB, CL).await.unwrap();
+    let client = MongoClient::new(URI, DB, CL).await.unwrap();
 
-    todo!()
+    let indexes = client.list_indexes::<TestCrud>().await;
+    println!("{:?}", indexes);
 }

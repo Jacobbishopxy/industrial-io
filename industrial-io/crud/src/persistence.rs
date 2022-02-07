@@ -133,22 +133,55 @@ pub enum Dir {
 }
 
 #[derive(Debug, Clone)]
-pub struct IndexOptions {
+pub struct SingleIndex {
     pub name: String,
     pub dir: Dir,
     pub unique: bool,
     pub text: bool,
 }
 
-impl IndexOptions {
+impl SingleIndex {
     pub fn new(name: &str, dir: Dir, unique: bool, text: bool) -> Self {
-        IndexOptions {
+        SingleIndex {
             name: name.to_string(),
             dir,
             unique,
             text,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct SingleIndexOptions(pub Vec<SingleIndex>);
+
+#[derive(Debug, Clone)]
+pub struct CompoundIndexOptions {
+    pub names: Vec<String>,
+    pub dir: Dir,
+    pub unique: bool,
+    pub text: bool,
+}
+
+impl CompoundIndexOptions {
+    pub fn new(names: &[&str], dir: Dir, unique: bool, text: bool) -> Self {
+        CompoundIndexOptions {
+            names: names.iter().map(|v| v.to_string()).collect(),
+            dir,
+            unique,
+            text,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum IndexOptions {
+    Single(SingleIndexOptions),
+    Compound(CompoundIndexOptions),
+}
+
+// TODO: turn `IndexOptions` into `Vec<mongodb::IndexModel>`
+fn generate_mongo_index_module(indexes: &IndexOptions) -> Vec<IndexModel> {
+    unimplemented!()
 }
 
 /// BaseCRUD trait
@@ -163,7 +196,7 @@ pub trait BaseCRUD {
     fn mutate_id(&mut self, oid: ObjectId) -> Result<()>;
 
     /// show `Vec<indexOptions>`
-    fn show_indexes(&self) -> Vec<IndexOptions>;
+    fn show_indexes(&self) -> IndexOptions;
 }
 
 /// MongoCRUD trait

@@ -2,22 +2,20 @@
 //!
 //! This macro generates CRUD methods for a given struct.
 
-use std::str::FromStr;
+mod indexes;
 
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Attribute, Data, DeriveInput, Field,
     Fields, Ident, Lit, Meta, NestedMeta,
 };
 
+use indexes::*;
+
 const TAG: &str = "crud";
 const ID: &str = "id";
-const INDEX: &str = "index";
-
-const ASC: &str = "asc";
-const DESC: &str = "desc";
-const UNIQUE: &str = "unique";
-const TEXT: &str = "text";
+const SINGLE_INDEX: &str = "single_index";
+const COMPOUND_INDEX: &str = "compound_index";
 
 /// macro for CRUD derive
 #[proc_macro_derive(CRUD, attributes(crud))]
@@ -31,98 +29,6 @@ pub fn derive_crud(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // println!("{}", &stream);
 
     proc_macro::TokenStream::from(stream)
-}
-
-/// Index direction
-#[derive(Debug, Clone)]
-enum Dir {
-    Asc,
-    Desc,
-}
-
-/// Index options (MongoDB)
-#[derive(Debug, Clone)]
-struct IndexOptions {
-    name: String,
-    dir: Dir,
-    unique: bool,
-    text: bool,
-}
-
-impl IndexOptions {
-    fn new_from_str(name: String, s: &str) -> Self {
-        // parse from string
-        let mut options = s.parse::<IndexOptions>().unwrap();
-        options.name = name;
-        options
-    }
-}
-
-impl Default for IndexOptions {
-    fn default() -> Self {
-        IndexOptions {
-            name: String::new(),
-            dir: Dir::Asc,
-            unique: false,
-            text: false,
-        }
-    }
-}
-
-impl FromStr for IndexOptions {
-    type Err = ();
-
-    // ignore any string who does not match the `IndexOptions` fields' format
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut options = IndexOptions::default();
-        s.split(',').for_each(|i| match i {
-            ASC => options.dir = Dir::Asc,
-            DESC => options.dir = Dir::Desc,
-            UNIQUE => options.unique = true,
-            TEXT => options.text = true,
-            _ => {}
-        });
-        Ok(options)
-    }
-}
-
-/// `crud_derive::Dir` -> `crud::Dir`
-impl ToTokens for Dir {
-    // since `crud_derive::Dir` is not a public API (cannot be exported in a proc-macro crate),
-    // we need to convert it to a public API (defined in `crud` crate).
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(match self {
-            Dir::Asc => quote! { crud::Dir::Asc },
-            Dir::Desc => quote! { crud::Dir::Desc },
-        })
-    }
-}
-
-/// `crud_derive::IndexOptions` -> `crud::IndexOptions`
-impl ToTokens for IndexOptions {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = &self.name;
-        let dir = &self.dir;
-        let unique = &self.unique;
-        let text = &self.text;
-        tokens.extend(quote! {
-            crud::IndexOptions::new(#name, #dir, #unique, #text)
-        })
-    }
-}
-
-/// new type for `Vec<crud_derive::IndexOptions>`
-/// we need it because `syn::ToTokens` cannot be implemented for `Vec<_>`
-struct IndexOptionsCollection(Vec<IndexOptions>);
-
-/// `crud_derive::IndexOptionsCollection` -> `Vec<crud::IndexOptions>`
-impl ToTokens for IndexOptionsCollection {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let d = &self.0;
-        tokens.extend(quote! {
-            vec![#(#d),*]
-        })
-    }
 }
 
 type NamedFields = Punctuated<Field, Comma>;
@@ -166,7 +72,7 @@ fn get_field_id(named_fields: &NamedFields) -> Option<Ident> {
 /// same as:
 ///
 /// ```rust,ignore
-/// fn get_attr_oid(named_fields: &NamedFields) -> Option<Ident> {
+/// fn get_attr_id(named_fields: &NamedFields) -> Option<Ident> {
 ///     for field in named_fields.iter() {
 ///         for attr in field.attrs.iter() {
 ///             if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
@@ -185,7 +91,8 @@ fn get_field_id(named_fields: &NamedFields) -> Option<Ident> {
 ///     None
 /// }
 /// ```
-fn get_attr_oid(named_fields: &NamedFields) -> Option<Ident> {
+fn get_attr_id(named_fields: &NamedFields) -> Option<Ident> {
+    // get the `id` sub-attribute field as an `Ident`
     let nested_meta_find_map = |field: &Field, nested_meta: &NestedMeta| match nested_meta {
         NestedMeta::Meta(Meta::Path(path)) if path.is_ident(ID) => {
             Some(field.ident.as_ref().unwrap().clone())
@@ -193,6 +100,7 @@ fn get_attr_oid(named_fields: &NamedFields) -> Option<Ident> {
         _ => None,
     };
 
+    // iterate an attribute until we find the `id` sub-attribute
     let attrs_find_map = |field: &Field, attr: &Attribute| match attr.parse_meta() {
         Ok(Meta::List(meta_list)) if meta_list.path.is_ident(TAG) => meta_list
             .nested
@@ -201,6 +109,7 @@ fn get_attr_oid(named_fields: &NamedFields) -> Option<Ident> {
         _ => None,
     };
 
+    // iterate all attributes until we find one that contains the `id` sub-attribute
     let field_find_map = |field: &Field| {
         field
             .attrs
@@ -208,11 +117,12 @@ fn get_attr_oid(named_fields: &NamedFields) -> Option<Ident> {
             .find_map(|attr| attrs_find_map(field, attr))
     };
 
+    // iterate all fields until we find a field whose attribute is `crud(id)`
     named_fields.iter().find_map(field_find_map)
 }
 
 /// find out a field whose attribute is `index`
-///  
+///
 /// ```rust,ignore
 /// struct TestCrud {
 ///     id: Option<ID>,
@@ -251,47 +161,59 @@ fn get_attr_oid(named_fields: &NamedFields) -> Option<Ident> {
 ///     result
 /// }
 /// ```
-fn index_format(named_fields: &NamedFields) -> Vec<IndexOptions> {
+fn single_index_format(named_fields: &NamedFields) -> Vec<SingleIndex> {
+    // parse index attribute
     let nested_meta_filter_map = |field: &Field, nested_meta: &NestedMeta| match nested_meta {
-        NestedMeta::Meta(Meta::NameValue(mnv)) if mnv.path.is_ident(INDEX) => match mnv.lit {
-            Lit::Str(ref s) => Some(IndexOptions::new_from_str(
-                field.ident.as_ref().unwrap().to_string(),
-                &s.value(),
-            )),
-            _ => None,
-        },
+        NestedMeta::Meta(Meta::NameValue(mnv)) if mnv.path.is_ident(SINGLE_INDEX) => {
+            match mnv.lit {
+                Lit::Str(ref s) => Some(SingleIndex::new_from_str(
+                    field.ident.as_ref().unwrap().to_string(),
+                    &s.value(),
+                )),
+                _ => None,
+            }
+        }
         _ => None,
     };
 
+    // iterate an attribute and filter out `crud(index = "...")`
     let attrs_fmap = |field: &Field, attr: &Attribute| match attr.parse_meta() {
         Ok(Meta::List(meta_list)) if meta_list.path.is_ident(TAG) => meta_list
             .nested
             .iter()
             .filter_map(|nested_meta| nested_meta_filter_map(field, nested_meta))
-            .collect::<Vec<IndexOptions>>(),
+            .collect::<Vec<SingleIndex>>(),
         _ => vec![],
     };
 
+    // iterate through all attributes in a field
     let field_fmap = |field: &Field| {
         field
             .attrs
             .iter()
             .flat_map(|attr| attrs_fmap(field, attr))
-            .collect::<Vec<IndexOptions>>()
+            .collect::<Vec<SingleIndex>>()
     };
 
+    // iterate through all fields
     named_fields.iter().flat_map(field_fmap).collect()
+}
+
+fn compound_index_format(named_fields: &NamedFields) -> CompoundIndexOptions {
+    unimplemented!()
 }
 
 /// main process of handling derive stream
 fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
+    // name of the struct
     let name = input.ident.clone();
     let named_fields = named_fields(input);
-    let index_info = index_format(&named_fields);
-    let ioc = IndexOptionsCollection(index_info);
+    // single index options of the struct
+    let index_info = single_index_format(&named_fields);
+    let sio = SingleIndexOptions(index_info);
 
-    // get ID either from field `id` or field whose attribute is `oid`
-    let id = match (get_field_id(&named_fields), get_attr_oid(&named_fields)) {
+    // get ID either from field `id` or field whose attribute is `id`
+    let id = match (get_field_id(&named_fields), get_attr_id(&named_fields)) {
         (Some(id), _) => id,
         (None, Some(oid)) => oid,
         _ => panic!("No `id` field nor `oid` attribute were found!"),
@@ -313,8 +235,8 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
                 Ok(())
             }
 
-            fn show_indexes(&self) -> ::std::vec::Vec<crud::IndexOptions> {
-                #ioc
+            fn show_indexes(&self) -> crud::IndexOptions {
+                #sio
             }
         }
 
