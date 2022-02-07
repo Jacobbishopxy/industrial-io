@@ -4,8 +4,6 @@
 
 mod indexes;
 
-use std::str::FromStr;
-
 use quote::quote;
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Attribute, Data, DeriveInput, Field,
@@ -234,15 +232,14 @@ fn compound_index_format(named_fields: &NamedFields) -> Option<CompoundIndexOpti
                                 if mnv.path.is_ident(COMPOUND_INDEX) =>
                             {
                                 if let Lit::Str(ref s) = mnv.lit {
-                                    // TODO:
-                                    // result.names.push(field.ident.as_ref().unwrap().to_string());
-                                    // override common_option, even if it's not empty
-                                    // result.common_option = CommonOption::from_str(&s.value()).unwrap();
+                                    result.update_from_str(
+                                        field.ident.as_ref().unwrap().to_string(),
+                                        &s.value(),
+                                    );
                                 }
                             }
                             NestedMeta::Meta(Meta::Path(mp)) if mp.is_ident(COMPOUND_INDEX) => {
-                                // TODO:
-                                // result.names.push(field.ident.as_ref().unwrap().to_string());
+                                result.add_keys(field.ident.as_ref().unwrap().to_string());
                             }
                             _ => {}
                         }
@@ -304,7 +301,7 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
                 Ok(())
             }
 
-            fn show_indexes(&self) -> crud::IndexOptions {
+            fn show_indexes() -> crud::IndexOptions {
                 #io
             }
         }

@@ -96,5 +96,23 @@ async fn test_indexes_operations() {
     let client = MongoClient::new(URI, DB, CL).await.unwrap();
 
     let indexes = client.list_indexes::<TestSingleIndexCrud>().await;
-    println!("{:?}", indexes);
+    println!("show indexes: {:?}", indexes);
+    assert!(indexes.is_ok());
+
+    let value = TestCompoundIndexCrud {
+        id: None,
+        name: "test".to_string(),
+        age: 1,
+        content: None,
+        version: 1,
+    };
+
+    // TODO: is there another way to express `<... as ...>::method`?
+    let compound_index_create =
+        <MongoClient as MongoCRUD<TestCompoundIndexCrud>>::create_self_indexes(&client).await;
+    assert!(compound_index_create.is_ok());
+    println!("create indexes: {:?}", compound_index_create.unwrap());
+
+    let create = client.create(value).await;
+    assert!(create.is_ok());
 }

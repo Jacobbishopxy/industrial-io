@@ -12,13 +12,7 @@ struct TestNoneIndexCrud {
 
 #[test]
 fn test_custom_derive_no_index() {
-    let test_crud = TestNoneIndexCrud {
-        id: None,
-        name: "test".to_string(),
-        content: None,
-    };
-
-    let indexes = test_crud.show_indexes();
+    let indexes = TestNoneIndexCrud::show_indexes();
 
     println!("{:?}", indexes);
 }
@@ -35,13 +29,7 @@ struct TestSingleIndexCrud {
 
 #[test]
 fn test_custom_derive() {
-    let test_crud = TestSingleIndexCrud {
-        idx: None,
-        name: "test".to_string(),
-        data: None,
-    };
-
-    let indexes = test_crud.show_indexes();
+    let indexes = TestSingleIndexCrud::show_indexes();
 
     println!("{:?}", indexes);
 }
@@ -60,15 +48,7 @@ struct TestCompoundIndexCrud {
 
 #[test]
 fn test_custom_derive2() {
-    let test_crud = TestCompoundIndexCrud {
-        id: None,
-        name: "test".to_string(),
-        age: 12,
-        content: None,
-        version: 1,
-    };
-
-    let indexes = test_crud.show_indexes();
+    let indexes = TestCompoundIndexCrud::show_indexes();
 
     println!("{:?}", indexes);
 }
