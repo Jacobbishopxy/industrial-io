@@ -4,6 +4,8 @@
 
 mod indexes;
 
+use std::str::FromStr;
+
 use quote::quote;
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Attribute, Data, DeriveInput, Field,
@@ -121,14 +123,14 @@ fn get_attr_id(named_fields: &NamedFields) -> Option<Ident> {
     named_fields.iter().find_map(field_find_map)
 }
 
-/// find out a field whose attribute is `index`
+/// find out fields whose attribute is `single_index`
 ///
 /// ```rust,ignore
 /// struct TestCrud {
 ///     id: Option<ID>,
-///     #[crud(index = "unique,asc")]
+///     #[crud(single_index = "unique,asc")]
 ///     name: String,
-///     #[crud(index = "unique,desc,text")]
+///     #[crud(single_index = "unique,desc,text")]
 ///     tag: String,
 /// }
 /// ```
@@ -137,7 +139,7 @@ fn get_attr_id(named_fields: &NamedFields) -> Option<Ident> {
 ///
 /// ```rust,ignore
 /// fn index_format(named_fields: &NamedFields) -> Vec<IndexOptions> {
-///     let mut result = Vec::<IndexOptions>::new();
+///     let mut result = Vec::<SingleIndex>::default();
 ///     for field in named_fields.iter() {
 ///         for attr in field.attrs.iter() {
 ///             if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
@@ -146,7 +148,7 @@ fn get_attr_id(named_fields: &NamedFields) -> Option<Ident> {
 ///                         if let NestedMeta::Meta(Meta::NameValue(mnv)) = nm {
 ///                             if mnv.path.is_ident(INDEX) {
 ///                                 if let Lit::Str(ref s) = mnv.lit {
-///                                     result.push(IndexOptions::new_from_str(
+///                                     result.push(SingleIndex::new_from_str(
 ///                                         field.ident.as_ref().unwrap().to_string(),
 ///                                         &s.value(),
 ///                                     ));
@@ -161,7 +163,7 @@ fn get_attr_id(named_fields: &NamedFields) -> Option<Ident> {
 ///     result
 /// }
 /// ```
-fn single_index_format(named_fields: &NamedFields) -> Vec<SingleIndex> {
+fn single_index_format(named_fields: &NamedFields) -> Option<SingleIndexOptions> {
     // parse index attribute
     let nested_meta_filter_map = |field: &Field, nested_meta: &NestedMeta| match nested_meta {
         NestedMeta::Meta(Meta::NameValue(mnv)) if mnv.path.is_ident(SINGLE_INDEX) => {
@@ -196,11 +198,78 @@ fn single_index_format(named_fields: &NamedFields) -> Vec<SingleIndex> {
     };
 
     // iterate through all fields
-    named_fields.iter().flat_map(field_fmap).collect()
+    let single_index = named_fields
+        .iter()
+        .flat_map(field_fmap)
+        .collect::<Vec<SingleIndex>>();
+
+    if single_index.is_empty() {
+        None
+    } else {
+        Some(SingleIndexOptions(single_index))
+    }
 }
 
-fn compound_index_format(named_fields: &NamedFields) -> CompoundIndexOptions {
-    unimplemented!()
+/// find out fields whose attribute is `compound_index`
+///
+/// ```rust,ignore
+/// struct TestCrud {
+///     id: Option<ID>,
+///     #[crud(compound_index = "unique,asc")]
+///     name: String,
+///     #[crud(compound_index)]
+///     tag: String,
+/// }
+/// ```
+///
+fn compound_index_format(named_fields: &NamedFields) -> Option<CompoundIndexOptions> {
+    let mut result = CompoundIndexOptions::default();
+    for field in named_fields.iter() {
+        for attr in field.attrs.iter() {
+            if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
+                if meta_list.path.is_ident(TAG) {
+                    for nested_meta in meta_list.nested.iter() {
+                        match nested_meta {
+                            NestedMeta::Meta(Meta::NameValue(mnv))
+                                if mnv.path.is_ident(COMPOUND_INDEX) =>
+                            {
+                                if let Lit::Str(ref s) = mnv.lit {
+                                    result.names.push(field.ident.as_ref().unwrap().to_string());
+                                    // override common_option, even if it's not empty
+                                    result.common_option =
+                                        CommonOption::from_str(&s.value()).unwrap();
+                                }
+                            }
+                            NestedMeta::Meta(Meta::Path(mp)) if mp.is_ident(COMPOUND_INDEX) => {
+                                result.names.push(field.ident.as_ref().unwrap().to_string());
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if result.names.is_empty() {
+        None
+    } else {
+        Some(result)
+    }
+}
+
+fn index_format(named_fields: &NamedFields) -> IndexOptions {
+    let single_index = single_index_format(named_fields);
+    let compound_index = compound_index_format(named_fields);
+
+    match (single_index, compound_index) {
+        (Some(si), None) => IndexOptions::Single(si),
+        (None, Some(ci)) => IndexOptions::Compound(ci),
+        (Some(_), Some(_)) => {
+            panic!("single_index & compound_index current are not allowed at the same time")
+        }
+        _ => IndexOptions::None,
+    }
 }
 
 /// main process of handling derive stream
@@ -208,9 +277,8 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
     // name of the struct
     let name = input.ident.clone();
     let named_fields = named_fields(input);
-    // single index options of the struct
-    let index_info = single_index_format(&named_fields);
-    let sio = SingleIndexOptions(index_info);
+    // index options of the struct
+    let io = index_format(&named_fields);
 
     // get ID either from field `id` or field whose attribute is `id`
     let id = match (get_field_id(&named_fields), get_attr_id(&named_fields)) {
@@ -236,7 +304,7 @@ fn impl_crud(input: &DeriveInput) -> proc_macro2::TokenStream {
             }
 
             fn show_indexes(&self) -> crud::IndexOptions {
-                #sio
+                #io
             }
         }
 

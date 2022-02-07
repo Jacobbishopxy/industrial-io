@@ -173,10 +173,12 @@ impl CompoundIndexOptions {
     }
 }
 
+/// index options represent indexes in a collection, the default `_id` index is not included.
 #[derive(Debug)]
 pub enum IndexOptions {
     Single(SingleIndexOptions),
     Compound(CompoundIndexOptions),
+    None,
 }
 
 // TODO: turn `IndexOptions` into `Vec<mongodb::IndexModel>`

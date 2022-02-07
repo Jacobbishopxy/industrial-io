@@ -7,7 +7,7 @@ const DB: &str = "test";
 const CL: &str = "dev";
 
 #[derive(Debug, Serialize, Deserialize, Clone, CRUD, PartialEq)]
-struct TestCrud {
+struct TestSingleIndexCrud {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     #[crud(id)]
     idx: Option<ObjectId>,
@@ -29,7 +29,7 @@ async fn test_mongo_client() {
     assert!(collections.is_ok());
     println!("{:?}", collections.unwrap());
 
-    let indexes = client.list_indexes::<TestCrud>().await;
+    let indexes = client.list_indexes::<TestSingleIndexCrud>().await;
 
     println!("{:?}", indexes);
 }
@@ -38,7 +38,7 @@ async fn test_mongo_client() {
 async fn test_curd_operations() {
     let client = MongoClient::new(URI, DB, CL).await.unwrap();
 
-    let value = TestCrud {
+    let value = TestSingleIndexCrud {
         idx: None,
         name: "test".to_string(),
         content: None,
@@ -95,6 +95,6 @@ struct TestCompoundIndexCrud {
 async fn test_indexes_operations() {
     let client = MongoClient::new(URI, DB, CL).await.unwrap();
 
-    let indexes = client.list_indexes::<TestCrud>().await;
+    let indexes = client.list_indexes::<TestSingleIndexCrud>().await;
     println!("{:?}", indexes);
 }

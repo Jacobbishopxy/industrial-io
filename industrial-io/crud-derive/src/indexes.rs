@@ -18,57 +18,6 @@ pub enum Dir {
     Desc,
 }
 
-/// Index options (MongoDB)
-#[derive(Debug, Clone)]
-pub struct SingleIndex {
-    name: String,
-    dir: Dir,
-    unique: bool,
-    text: bool,
-}
-
-impl SingleIndex {
-    pub fn new_from_str(name: String, s: &str) -> Self {
-        // parse from string
-        let mut options = s.parse::<SingleIndex>().unwrap();
-        options.name = name;
-        options
-    }
-}
-
-/// new type for `Vec<crud_derive::IndexOptions>`
-/// we need it because `syn::ToTokens` cannot be implemented for `Vec<_>`
-#[derive(Debug, Clone)]
-pub struct SingleIndexOptions(pub Vec<SingleIndex>);
-
-impl Default for SingleIndex {
-    fn default() -> Self {
-        SingleIndex {
-            name: String::new(),
-            dir: Dir::Asc,
-            unique: false,
-            text: false,
-        }
-    }
-}
-
-impl FromStr for SingleIndex {
-    type Err = ();
-
-    // ignore any string who does not match the `IndexOptions` fields' format
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut options = SingleIndex::default();
-        s.split(',').for_each(|i| match i {
-            ASC => options.dir = Dir::Asc,
-            DESC => options.dir = Dir::Desc,
-            UNIQUE => options.unique = true,
-            TEXT => options.text = true,
-            _ => {}
-        });
-        Ok(options)
-    }
-}
-
 /// `crud_derive::Dir` -> `crud::Dir`
 impl ToTokens for Dir {
     // since `crud_derive::Dir` is not a public API (cannot be exported in a proc-macro crate),
@@ -81,13 +30,70 @@ impl ToTokens for Dir {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct CommonOption {
+    pub dir: Dir,
+    pub unique: bool,
+    pub text: bool,
+}
+
+impl Default for CommonOption {
+    fn default() -> Self {
+        CommonOption {
+            dir: Dir::Asc,
+            unique: false,
+            text: false,
+        }
+    }
+}
+
+impl FromStr for CommonOption {
+    type Err = ();
+
+    // ignore any string who does not match the `IndexOptions` fields' format
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut options = CommonOption::default();
+        s.split(',').for_each(|i| match i {
+            ASC => options.dir = Dir::Asc,
+            DESC => options.dir = Dir::Desc,
+            UNIQUE => options.unique = true,
+            TEXT => options.text = true,
+            _ => {}
+        });
+        Ok(options)
+    }
+}
+
+/// Index options (MongoDB)
+#[derive(Debug, Clone, Default)]
+pub struct SingleIndex {
+    pub name: String,
+    pub common_option: CommonOption,
+}
+
+impl SingleIndex {
+    pub fn new_from_str(name: String, s: &str) -> Self {
+        // parse from string
+        let common_option = s.parse::<CommonOption>().unwrap();
+        SingleIndex {
+            name,
+            common_option,
+        }
+    }
+}
+
+/// new type for `Vec<crud_derive::IndexOptions>`
+/// we need it because `syn::ToTokens` cannot be implemented for `Vec<_>`
+#[derive(Debug, Clone)]
+pub struct SingleIndexOptions(pub Vec<SingleIndex>);
+
 /// `crud_derive::IndexOptions` -> `crud::IndexOptions`
 impl ToTokens for SingleIndex {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
-        let dir = &self.dir;
-        let unique = &self.unique;
-        let text = &self.text;
+        let dir = &self.common_option.dir;
+        let unique = &self.common_option.unique;
+        let text = &self.common_option.text;
         tokens.extend(quote! {
             crud::SingleIndex::new(#name, #dir, #unique, #text)
         })
@@ -104,21 +110,43 @@ impl ToTokens for SingleIndexOptions {
     }
 }
 
-#[derive(Debug, Clone)]
+/// Compound index options
+#[derive(Debug, Clone, Default)]
 pub struct CompoundIndexOptions {
     pub names: Vec<String>,
-    pub dir: Dir,
-    pub unique: bool,
-    pub text: bool,
+    pub common_option: CommonOption,
 }
 
-impl CompoundIndexOptions {
-    pub fn new(names: &[&str], dir: Dir, unique: bool, text: bool) -> Self {
-        CompoundIndexOptions {
-            names: names.iter().map(|v| v.to_string()).collect(),
-            dir,
-            unique,
-            text,
+impl ToTokens for CompoundIndexOptions {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let names = &self.names;
+        let dir = &self.common_option.dir;
+        let unique = &self.common_option.unique;
+        let text = &self.common_option.text;
+        tokens.extend(quote! {
+            crud::IndexOptions::Compound(crud::CompoundIndexOptions {
+                names: vec![#(#names.to_string()),*],
+                dir: #dir,
+                unique: #unique,
+                text: #text,
+            })
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum IndexOptions {
+    Single(SingleIndexOptions),
+    Compound(CompoundIndexOptions),
+    None,
+}
+
+impl ToTokens for IndexOptions {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            IndexOptions::Single(v) => v.to_tokens(tokens),
+            IndexOptions::Compound(v) => v.to_tokens(tokens),
+            IndexOptions::None => tokens.extend(quote! { crud::IndexOptions::None }),
         }
     }
 }
