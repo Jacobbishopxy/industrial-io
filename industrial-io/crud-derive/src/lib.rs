@@ -234,14 +234,15 @@ fn compound_index_format(named_fields: &NamedFields) -> Option<CompoundIndexOpti
                                 if mnv.path.is_ident(COMPOUND_INDEX) =>
                             {
                                 if let Lit::Str(ref s) = mnv.lit {
-                                    result.names.push(field.ident.as_ref().unwrap().to_string());
+                                    // TODO:
+                                    // result.names.push(field.ident.as_ref().unwrap().to_string());
                                     // override common_option, even if it's not empty
-                                    result.common_option =
-                                        CommonOption::from_str(&s.value()).unwrap();
+                                    // result.common_option = CommonOption::from_str(&s.value()).unwrap();
                                 }
                             }
                             NestedMeta::Meta(Meta::Path(mp)) if mp.is_ident(COMPOUND_INDEX) => {
-                                result.names.push(field.ident.as_ref().unwrap().to_string());
+                                // TODO:
+                                // result.names.push(field.ident.as_ref().unwrap().to_string());
                             }
                             _ => {}
                         }
@@ -251,7 +252,7 @@ fn compound_index_format(named_fields: &NamedFields) -> Option<CompoundIndexOpti
         }
     }
 
-    if result.names.is_empty() {
+    if result.keys.is_empty() {
         None
     } else {
         Some(result)

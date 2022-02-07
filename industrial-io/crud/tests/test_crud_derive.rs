@@ -2,6 +2,27 @@ use bson::oid::ObjectId;
 use crud::*;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Serialize, Deserialize, Clone, CRUD, PartialEq)]
+struct TestNoneIndexCrud {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    id: Option<ObjectId>,
+    name: String,
+    content: Option<String>,
+}
+
+#[test]
+fn test_custom_derive_no_index() {
+    let test_crud = TestNoneIndexCrud {
+        id: None,
+        name: "test".to_string(),
+        content: None,
+    };
+
+    let indexes = test_crud.show_indexes();
+
+    println!("{:?}", indexes);
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, CRUD)]
 struct TestSingleIndexCrud {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]

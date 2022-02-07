@@ -18,6 +18,12 @@ pub enum Dir {
     Desc,
 }
 
+impl Default for Dir {
+    fn default() -> Self {
+        Dir::Asc
+    }
+}
+
 /// `crud_derive::Dir` -> `crud::Dir`
 impl ToTokens for Dir {
     // since `crud_derive::Dir` is not a public API (cannot be exported in a proc-macro crate),
@@ -30,21 +36,11 @@ impl ToTokens for Dir {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CommonOption {
     pub dir: Dir,
     pub unique: bool,
     pub text: bool,
-}
-
-impl Default for CommonOption {
-    fn default() -> Self {
-        CommonOption {
-            dir: Dir::Asc,
-            unique: false,
-            text: false,
-        }
-    }
 }
 
 impl FromStr for CommonOption {
@@ -67,8 +63,9 @@ impl FromStr for CommonOption {
 /// Index options (MongoDB)
 #[derive(Debug, Clone, Default)]
 pub struct SingleIndex {
-    pub name: String,
-    pub common_option: CommonOption,
+    pub keys: (String, Dir),
+    pub unique: bool,
+    pub text: bool,
 }
 
 impl SingleIndex {
@@ -76,8 +73,9 @@ impl SingleIndex {
         // parse from string
         let common_option = s.parse::<CommonOption>().unwrap();
         SingleIndex {
-            name,
-            common_option,
+            keys: (name, common_option.dir),
+            unique: common_option.unique,
+            text: common_option.text,
         }
     }
 }
@@ -90,10 +88,10 @@ pub struct SingleIndexOptions(pub Vec<SingleIndex>);
 /// `crud_derive::IndexOptions` -> `crud::IndexOptions`
 impl ToTokens for SingleIndex {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = &self.name;
-        let dir = &self.common_option.dir;
-        let unique = &self.common_option.unique;
-        let text = &self.common_option.text;
+        let name = &self.keys.0;
+        let dir = &self.keys.1;
+        let unique = &self.unique;
+        let text = &self.text;
         tokens.extend(quote! {
             crud::SingleIndex::new(#name, #dir, #unique, #text)
         })
@@ -113,20 +111,20 @@ impl ToTokens for SingleIndexOptions {
 /// Compound index options
 #[derive(Debug, Clone, Default)]
 pub struct CompoundIndexOptions {
-    pub names: Vec<String>,
-    pub common_option: CommonOption,
+    pub keys: Vec<(String, Dir)>,
+    pub unique: bool,
+    pub text: bool,
 }
 
 impl ToTokens for CompoundIndexOptions {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let names = &self.names;
-        let dir = &self.common_option.dir;
-        let unique = &self.common_option.unique;
-        let text = &self.common_option.text;
+        let keys = &self.keys;
+        let unique = &self.unique;
+        let text = &self.text;
+        // TODO: keys should be a tuple
         tokens.extend(quote! {
             crud::IndexOptions::Compound(crud::CompoundIndexOptions {
-                names: vec![#(#names.to_string()),*],
-                dir: #dir,
+                keys: vec![],
                 unique: #unique,
                 text: #text,
             })

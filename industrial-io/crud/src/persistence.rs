@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use bson::{doc, oid::ObjectId, to_document};
-use mongodb::IndexModel;
+use mongodb::{options::IndexOptions as MongoIndexOptions, IndexModel as MongoIndexModel};
 use serde::{de::DeserializeOwned, Serialize};
 use tokio_stream::StreamExt;
 
@@ -57,11 +57,11 @@ impl MongoClient {
         Ok(collections)
     }
 
-    // TODO: turn `IndexOptions` into `mongodb::IndexModel`
+    // TODO: turn `IndexOptions` into `mongodb::MongoIndexModel`
 
     /// list all indexes in a collection
     /// T is the type of the document
-    pub async fn list_indexes<T>(&self) -> Result<Vec<IndexModel>> {
+    pub async fn list_indexes<T>(&self) -> Result<Vec<MongoIndexModel>> {
         self.schema::<T>()
             .list_indexes(None)
             .await?
@@ -72,7 +72,7 @@ impl MongoClient {
 
     /// create index
     /// T is the type of the document
-    pub async fn create_index<T>(&self, index: IndexModel) -> Result<String> {
+    pub async fn create_index<T>(&self, index: MongoIndexModel) -> Result<String> {
         let result = self.schema::<T>().create_index(index, None).await?;
         Ok(result.index_name)
     }
@@ -181,9 +181,44 @@ pub enum IndexOptions {
     None,
 }
 
-// TODO: turn `IndexOptions` into `Vec<mongodb::IndexModel>`
-fn generate_mongo_index_module(indexes: &IndexOptions) -> Vec<IndexModel> {
-    unimplemented!()
+// TODO: turn `IndexOptions` into `Vec<mongodb::MongoIndexModel>`
+fn generate_mongo_index_module(indexes: &IndexOptions) -> Vec<MongoIndexModel> {
+    match indexes {
+        IndexOptions::Single(s) => {
+            s.0.iter()
+                .map(|si| {
+                    let dir: i32 = match si.dir {
+                        Dir::Asc => 1,
+                        Dir::Desc => -1,
+                    };
+                    let unique = si.unique;
+                    // let text = si.text;
+
+                    MongoIndexModel::builder()
+                        .keys(doc! { si.name.to_owned() : dir })
+                        .options(MongoIndexOptions::builder().unique(unique).build())
+                        .build()
+                })
+                .collect()
+        }
+        IndexOptions::Compound(c) => {
+            let dir = match c.dir {
+                Dir::Asc => 1,
+                Dir::Desc => -1,
+            };
+            let unique = c.unique;
+            // let text = c.text;
+
+            let im = MongoIndexModel::builder()
+                // TODO: {name1: dir1, name2: dir2}
+                .keys(doc! { c.names.join(",") : dir })
+                .options(MongoIndexOptions::builder().unique(unique).build())
+                .build();
+
+            vec![im]
+        }
+        IndexOptions::None => vec![],
+    }
 }
 
 /// BaseCRUD trait
