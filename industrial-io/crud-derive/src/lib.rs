@@ -1,6 +1,16 @@
 //! CRUD derive macro
 //!
 //! This macro generates CRUD methods for a given struct.
+//!
+//! Featured functions catalogue:
+//! - `get_field_id`
+//! - `get_attr_id`
+//! - `single_index_format`
+//! - `compound_index_format`
+//!
+//! These functions are used to find out tagged fields or attributes in the compiling time,
+//! and the results of these functions are used in proc-macro's token streams (see function
+//! `impl_crud`).
 
 mod indexes;
 
@@ -51,6 +61,13 @@ fn named_fields(ast: &DeriveInput) -> NamedFields {
 }
 
 /// find out whether a field name is `id`
+///
+/// ```rust,ignore
+/// struct TestCrud {
+///     id: Option<ID>,
+///     ...
+/// }
+/// ```
 fn get_field_id(named_fields: &NamedFields) -> Option<Ident> {
     for field in named_fields.iter() {
         if field.ident.as_ref().unwrap() == ID {
@@ -66,6 +83,7 @@ fn get_field_id(named_fields: &NamedFields) -> Option<Ident> {
 /// struct TestCrud {
 ///     #[crud(id)]
 ///     idx: Option<ID>,
+///     ...
 /// }
 /// ```
 ///
@@ -162,7 +180,7 @@ fn get_attr_id(named_fields: &NamedFields) -> Option<Ident> {
 /// }
 /// ```
 fn single_index_format(named_fields: &NamedFields) -> Option<SingleIndexOptions> {
-    // parse index attribute
+    // parse single_index attribute
     let nested_meta_filter_map = |field: &Field, nested_meta: &NestedMeta| match nested_meta {
         NestedMeta::Meta(Meta::NameValue(mnv)) if mnv.path.is_ident(SINGLE_INDEX) => {
             match mnv.lit {
@@ -176,7 +194,7 @@ fn single_index_format(named_fields: &NamedFields) -> Option<SingleIndexOptions>
         _ => None,
     };
 
-    // iterate an attribute and filter out `crud(index = "...")`
+    // iterate an attribute and filter out `crud(single_index = "...")`
     let attrs_fmap = |field: &Field, attr: &Attribute| match attr.parse_meta() {
         Ok(Meta::List(meta_list)) if meta_list.path.is_ident(TAG) => meta_list
             .nested
@@ -220,42 +238,102 @@ fn single_index_format(named_fields: &NamedFields) -> Option<SingleIndexOptions>
 /// }
 /// ```
 ///
+/// same as:
+///
+/// ```rust,ignore
+/// fn compound_index_format(named_fields: &NamedFields) -> Option<CompoundIndexOptions> {
+///     let mut result = CompoundIndexOptions::default();
+///     for field in named_fields.iter() {
+///         for attr in field.attrs.iter() {
+///             if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
+///                 if meta_list.path.is_ident(TAG) {
+///                     for nested_meta in meta_list.nested.iter() {
+///                         match nested_meta {
+///                             NestedMeta::Meta(Meta::NameValue(mnv))
+///                                 if mnv.path.is_ident(COMPOUND_INDEX) =>
+///                             {
+///                                 if let Lit::Str(ref s) = mnv.lit {
+///                                     result.update_from_str(
+///                                         field.ident.as_ref().unwrap().to_string(),
+///                                         &s.value(),
+///                                     );
+///                                 }
+///                             }
+///                             NestedMeta::Meta(Meta::Path(mp)) if mp.is_ident(COMPOUND_INDEX) => {
+///                                 result.add_keys(field.ident.as_ref().unwrap().to_string());
+///                             }
+///                             _ => {}
+///                         }
+///                     }
+///                 }
+///             }
+///         }
+///     }
+///
+///     if result.keys.is_empty() {
+///         None
+///     } else {
+///         Some(result)
+///     }
+/// }
+/// ```
 fn compound_index_format(named_fields: &NamedFields) -> Option<CompoundIndexOptions> {
-    let mut result = CompoundIndexOptions::default();
-    for field in named_fields.iter() {
-        for attr in field.attrs.iter() {
-            if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-                if meta_list.path.is_ident(TAG) {
-                    for nested_meta in meta_list.nested.iter() {
-                        match nested_meta {
-                            NestedMeta::Meta(Meta::NameValue(mnv))
-                                if mnv.path.is_ident(COMPOUND_INDEX) =>
-                            {
-                                if let Lit::Str(ref s) = mnv.lit {
-                                    result.update_from_str(
-                                        field.ident.as_ref().unwrap().to_string(),
-                                        &s.value(),
-                                    );
-                                }
-                            }
-                            NestedMeta::Meta(Meta::Path(mp)) if mp.is_ident(COMPOUND_INDEX) => {
-                                result.add_keys(field.ident.as_ref().unwrap().to_string());
-                            }
-                            _ => {}
-                        }
-                    }
+    // parse compound_index attribute
+    let nested_meta_fold = |mut result: CompoundIndexOptions,
+                            field: &Field,
+                            nested_meta: &NestedMeta| {
+        match nested_meta {
+            // - `crud(compound_index = "...")`
+            NestedMeta::Meta(Meta::NameValue(mnv)) if mnv.path.is_ident(COMPOUND_INDEX) => {
+                if let Lit::Str(ref s) = mnv.lit {
+                    result.update_from_str(field.ident.as_ref().unwrap().to_string(), &s.value());
                 }
             }
+            // - `crud(compound_index)`
+            NestedMeta::Meta(Meta::Path(mp)) if mp.is_ident(COMPOUND_INDEX) => {
+                result.add_keys(field.ident.as_ref().unwrap().to_string());
+            }
+            _ => {}
         }
-    }
 
-    if result.keys.is_empty() {
+        result
+    };
+
+    // iterate an attribute and filter out `crud(compound_index = "...")`
+    let attrs_fold = |result: CompoundIndexOptions, field: &Field, attr: &Attribute| {
+        if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
+            if meta_list.path.is_ident(TAG) {
+                return meta_list
+                    .nested
+                    .iter()
+                    .fold(result, |cio, nm| nested_meta_fold(cio, field, nm));
+            }
+        }
+
+        result
+    };
+
+    // iterate through all attributes in a field
+    let field_fold = |result: CompoundIndexOptions, field: &Field| {
+        field
+            .attrs
+            .iter()
+            .fold(result, |cio, attr| attrs_fold(cio, field, attr))
+    };
+
+    // iterate through all fields
+    let compound_index = named_fields
+        .iter()
+        .fold(CompoundIndexOptions::default(), field_fold);
+
+    if compound_index.keys.is_empty() {
         None
     } else {
-        Some(result)
+        Some(compound_index)
     }
 }
 
+/// get `IndexOptions` from a struct
 fn index_format(named_fields: &NamedFields) -> IndexOptions {
     let single_index = single_index_format(named_fields);
     let compound_index = compound_index_format(named_fields);
@@ -264,7 +342,7 @@ fn index_format(named_fields: &NamedFields) -> IndexOptions {
         (Some(si), None) => IndexOptions::Single(si),
         (None, Some(ci)) => IndexOptions::Compound(ci),
         (Some(_), Some(_)) => {
-            panic!("single_index & compound_index current are not allowed at the same time")
+            panic!("single_index & compound_index are currently not allowed at the same time")
         }
         _ => IndexOptions::None,
     }

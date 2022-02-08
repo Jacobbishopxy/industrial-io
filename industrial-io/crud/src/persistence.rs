@@ -9,12 +9,18 @@ use mongodb::{options::IndexOptions as MongoIndexOptions, IndexModel as MongoInd
 use serde::{de::DeserializeOwned, Serialize};
 use tokio_stream::StreamExt;
 
+const INDEXES_PREFIX: &str = "crud";
+
 #[derive(Clone)]
 pub struct MongoClient {
     client: mongodb::Client,
     pub database: String,
     pub collection: String,
 }
+
+/// Used as a placeholder for `.collection<T>` method.
+/// E.g. `.list_indexes()` doesn't need a specific `T`.
+struct Empty;
 
 impl MongoClient {
     pub async fn new<U, T>(uri: U, database: T, collection: T) -> Result<Self>
@@ -59,8 +65,8 @@ impl MongoClient {
 
     /// list all indexes in a collection
     /// T is the type of the document
-    pub async fn list_indexes<T>(&self) -> Result<Vec<MongoIndexModel>> {
-        self.schema::<T>()
+    pub async fn list_indexes(&self) -> Result<Vec<MongoIndexModel>> {
+        self.schema::<Empty>()
             .list_indexes(None)
             .await?
             .map(|v| v.map_err(anyhow::Error::from))
@@ -68,11 +74,34 @@ impl MongoClient {
             .await
     }
 
+    /// list all indexes name
+    pub async fn list_indexes_name(&self) -> Result<Vec<String>> {
+        self.schema::<Empty>()
+            .list_index_names()
+            .await
+            .map_err(anyhow::Error::from)
+    }
+
     /// create index
     /// T is the type of the document
-    pub async fn create_index<T>(&self, index: MongoIndexModel) -> Result<String> {
-        let result = self.schema::<T>().create_index(index, None).await?;
+    pub async fn create_index(&self, index: MongoIndexModel) -> Result<String> {
+        let result = self.schema::<Empty>().create_index(index, None).await?;
         Ok(result.index_name)
+    }
+
+    /// Create indexes by `T
+    pub async fn create_indexes_by_type<T: BaseCRUD>(&self) -> Result<Vec<String>> {
+        let indexes = T::show_indexes();
+
+        let index_models = generate_mongo_index_module(&indexes).into_iter();
+        let mut result = vec![];
+
+        for im in index_models {
+            let ci = self.schema::<T>().create_index(im, None).await?;
+            result.push(ci.index_name);
+        }
+
+        Ok(result)
     }
 
     /// drop index
@@ -167,8 +196,8 @@ pub enum IndexOptions {
     None,
 }
 
-// TODO: both single-index and compound-index should be named in `MongoIndexOptions`, specific name is required!
-/// turn `IndexOptions` into `Vec<mongodb::MongoIndexModel>`
+/// Turn `IndexOptions` into `Vec<mongodb::MongoIndexModel>`.
+/// Both single-index and compound-index are named in `MongoIndexOptions`.
 fn generate_mongo_index_module(indexes: &IndexOptions) -> Vec<MongoIndexModel> {
     match indexes {
         IndexOptions::Single(s) => {
@@ -182,9 +211,13 @@ fn generate_mongo_index_module(indexes: &IndexOptions) -> Vec<MongoIndexModel> {
                     let unique = si.unique;
                     // let text = si.text;
 
+                    let mio = MongoIndexOptions::builder()
+                        .name(format!("_{}_{}", INDEXES_PREFIX, name))
+                        .unique(unique)
+                        .build();
                     MongoIndexModel::builder()
                         .keys(doc! { name : dir })
-                        .options(MongoIndexOptions::builder().unique(unique).build())
+                        .options(mio)
                         .build()
                 })
                 .collect()
@@ -193,7 +226,10 @@ fn generate_mongo_index_module(indexes: &IndexOptions) -> Vec<MongoIndexModel> {
             let unique = c.unique;
             // let text = c.text;
 
+            let mut indexes_name = String::new();
             let keys = c.keys.iter().fold(doc! {}, |mut acc, (name, dir)| {
+                indexes_name.push_str(&name);
+                indexes_name.push('_');
                 let dir: i32 = match dir {
                     Dir::Asc => 1,
                     Dir::Desc => -1,
@@ -201,10 +237,12 @@ fn generate_mongo_index_module(indexes: &IndexOptions) -> Vec<MongoIndexModel> {
                 acc.extend(doc! { name.to_owned() : dir });
                 acc
             });
-            let im = MongoIndexModel::builder()
-                .keys(keys)
-                .options(MongoIndexOptions::builder().unique(unique).build())
+
+            let mio = MongoIndexOptions::builder()
+                .name(format!("_{}_{}", INDEXES_PREFIX, indexes_name))
+                .unique(unique)
                 .build();
+            let im = MongoIndexModel::builder().keys(keys).options(mio).build();
 
             vec![im]
         }
@@ -316,22 +354,6 @@ where
             .schema::<TYPE>()
             .find_one_and_delete(filter, None)
             .await?;
-        Ok(result)
-    }
-
-    // TODO: see `test_persistence` -> `test_indexes_operations`
-    /// Create self indexes
-    async fn create_self_indexes(&self) -> Result<Vec<String>> {
-        let indexes = TYPE::show_indexes();
-
-        let index_models = generate_mongo_index_module(&indexes).into_iter();
-        let mut result = vec![];
-
-        for im in index_models {
-            let ci = self.schema::<TYPE>().create_index(im, None).await?;
-            result.push(ci.index_name);
-        }
-
         Ok(result)
     }
 }

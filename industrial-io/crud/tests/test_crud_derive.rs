@@ -28,7 +28,7 @@ struct TestSingleIndexCrud {
 }
 
 #[test]
-fn test_custom_derive() {
+fn test_custom_derive_single_index() {
     let indexes = TestSingleIndexCrud::show_indexes();
 
     println!("{:?}", indexes);
@@ -47,7 +47,7 @@ struct TestCompoundIndexCrud {
 }
 
 #[test]
-fn test_custom_derive2() {
+fn test_custom_derive_compound_index() {
     let indexes = TestCompoundIndexCrud::show_indexes();
 
     println!("{:?}", indexes);

@@ -29,7 +29,7 @@ async fn test_mongo_client() {
     assert!(collections.is_ok());
     println!("{:?}", collections.unwrap());
 
-    let indexes = client.list_indexes::<TestSingleIndexCrud>().await;
+    let indexes = client.list_indexes().await;
 
     println!("{:?}", indexes);
 }
@@ -95,24 +95,31 @@ struct TestCompoundIndexCrud {
 async fn test_indexes_operations() {
     let client = MongoClient::new(URI, DB, CL).await.unwrap();
 
-    let indexes = client.list_indexes::<TestSingleIndexCrud>().await;
-    println!("show indexes: {:?}", indexes);
+    let indexes = client.list_indexes().await;
     assert!(indexes.is_ok());
 
-    let value = TestCompoundIndexCrud {
-        id: None,
-        name: "test".to_string(),
-        age: 1,
-        content: None,
-        version: 1,
-    };
+    let indexes_names = client.list_indexes_name().await;
+    assert!(indexes_names.is_ok());
+    let indexes_names = indexes_names.unwrap();
+    println!("indexes names: {:?}", indexes_names);
 
-    // TODO: is there another way to express `<... as ...>::method`?
-    let compound_index_create =
-        <MongoClient as MongoCRUD<TestCompoundIndexCrud>>::create_self_indexes(&client).await;
+    let compound_index_create = client
+        .create_indexes_by_type::<TestCompoundIndexCrud>()
+        .await;
     assert!(compound_index_create.is_ok());
-    println!("create indexes: {:?}", compound_index_create.unwrap());
+    let compound_index_create = compound_index_create.unwrap();
+    println!("create indexes: {:?}", compound_index_create);
 
-    let create = client.create(value).await;
-    assert!(create.is_ok());
+    // we know `TestCompoundIndexCrud` has a compound index, and currently single_index
+    // and compound_index are not coexisted, so we are sure the first index in the result
+    // is the compound index
+    let index_name = compound_index_create;
+    assert_eq!(index_name.len(), 1);
+    let index_name = index_name[0].clone();
+    println!("index name: {:?}", index_name);
+
+    let indexes_names = client.list_indexes_name().await;
+    assert!(indexes_names.is_ok());
+    let indexes_names = indexes_names.unwrap();
+    println!("indexes names: {:?}", indexes_names);
 }

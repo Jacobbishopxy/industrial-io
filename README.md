@@ -23,33 +23,49 @@ An industrial chain app by using MongoDB as Graph Database
     │   ├── next-env.d.ts
     │   └── next.config.js
     ├── industrial-io
-    │   ├── crud
+    │   ├── app
     │   │   └── src
-    │   │       ├── cache.rs
-    │   │       ├── lib.rs
-    │   │       └── persistence.rs
+    │   │       └── main.rs
+    │   ├── crud
+    │   │   ├── src
+    │   │   │   ├── cache.rs
+    │   │   │   ├── lib.rs
+    │   │   │   └── persistence.rs
+    │   │   └── tests
+    │   │       ├── test_crud_derive.rs
+    │   │       └── test_persistence.rs
     │   ├── crud-derive
     │   │   └── src
+    │   │       ├── indexes.rs
     │   │       └── lib.rs
-    │   └── src
-    │       ├── bin
-    │       ├── domain
-    │       │   ├── entities.rs
-    │       │   ├── handle_relationships.rs
-    │       │   ├── maintain_companies.rs
-    │       │   ├── maintain_properties.rs
-    │       │   ├── mod.rs
-    │       │   ├── objects.rs
-    │       │   ├── search_relationships.rs
-    │       │   └── show_catalog.rs
-    │       ├── infra
-    │       │   ├── mod.rs
-    │       │   └── provider.rs
-    │       ├── repository
-    │       │   ├── mod.rs
-    │       │   └── repo.rs
-    │       ├── errors.rs
-    │       └── lib.rs
+    │   ├── domain
+    │   │   ├── src
+    │   │   │   ├── actions
+    │   │   │   │   ├── handle_relationships.rs
+    │   │   │   │   ├── maintain_companies.rs
+    │   │   │   │   ├── maintain_properties.rs
+    │   │   │   │   ├── mod.rs
+    │   │   │   │   ├── operate_catalog.rs
+    │   │   │   │   └── search_relationships.rs
+    │   │   │   ├── entities
+    │   │   │   │   ├── category.rs
+    │   │   │   │   ├── company.rs
+    │   │   │   │   ├── industry.rs
+    │   │   │   │   ├── mod.rs
+    │   │   │   │   ├── objects.rs
+    │   │   │   │   ├── property.rs
+    │   │   │   │   ├── relationship.rs
+    │   │   │   │   └── view.rs
+    │   │   │   ├── repository
+    │   │   │   │   ├── mod.rs
+    │   │   │   │   └── repo.rs
+    │   │   │   ├── errors.rs
+    │   │   │   └── lib.rs
+    │   │   └── tests
+    │   └── service
+    │       └── src
+    │           ├── lib.rs
+    │           └── provider.rs
     ├── LICENSE
     ├── Makefile
     └── README.md
