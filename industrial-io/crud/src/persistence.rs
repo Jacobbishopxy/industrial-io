@@ -11,6 +11,7 @@ use tokio_stream::StreamExt;
 
 const INDEXES_PREFIX: &str = "crud";
 
+/// MongoDB client
 #[derive(Clone)]
 pub struct MongoClient {
     client: mongodb::Client,
@@ -23,6 +24,8 @@ pub struct MongoClient {
 struct Empty;
 
 impl MongoClient {
+    /// Create a new MongoDB client
+    /// Database and collection names are required, and they can be switched later.
     pub async fn new<U, T>(uri: U, database: T, collection: T) -> Result<Self>
     where
         U: AsRef<str>,
@@ -39,10 +42,12 @@ impl MongoClient {
         })
     }
 
+    /// set the database
     pub fn set_database<T: Into<String>>(&mut self, database: T) {
         self.database = database.into();
     }
 
+    /// set the collection
     pub fn set_collection<T: Into<String>>(&mut self, collection: T) {
         self.collection = collection.into();
     }
@@ -83,7 +88,6 @@ impl MongoClient {
     }
 
     /// create index
-    /// T is the type of the document
     pub async fn create_index(&self, index: MongoIndexModel) -> Result<String> {
         let result = self.schema::<Empty>().create_index(index, None).await?;
         Ok(result.index_name)
@@ -105,9 +109,14 @@ impl MongoClient {
     }
 
     /// drop index
-    /// T is the type of the document
-    pub async fn drop_index<T>(&self, index_name: &str) -> Result<()> {
-        self.schema::<T>().drop_index(index_name, None).await?;
+    pub async fn drop_index(&self, index_name: &str) -> Result<()> {
+        self.schema::<Empty>().drop_index(index_name, None).await?;
+        Ok(())
+    }
+
+    /// drop all indexes, except `_id_`
+    pub async fn drop_all_indexes(&self) -> Result<()> {
+        self.schema::<Empty>().drop_indexes(None).await?;
         Ok(())
     }
 }

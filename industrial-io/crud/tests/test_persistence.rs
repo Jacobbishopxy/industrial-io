@@ -95,25 +95,31 @@ struct TestCompoundIndexCrud {
 async fn test_indexes_operations() {
     let client = MongoClient::new(URI, DB, CL).await.unwrap();
 
+    // clear all indexes to make sure we start with a clean slate
+    let drop_all_indexes = client.drop_all_indexes().await;
+    assert!(drop_all_indexes.is_ok());
+
     let indexes = client.list_indexes().await;
     assert!(indexes.is_ok());
 
     let indexes_names = client.list_indexes_name().await;
     assert!(indexes_names.is_ok());
     let indexes_names = indexes_names.unwrap();
+    assert_eq!(indexes_names.len(), 1);
     println!("indexes names: {:?}", indexes_names);
 
-    let compound_index_create = client
+    // create a compound index, based on `TestCompoundIndexCrud`'s derivation macro
+    let create_compound_index = client
         .create_indexes_by_type::<TestCompoundIndexCrud>()
         .await;
-    assert!(compound_index_create.is_ok());
-    let compound_index_create = compound_index_create.unwrap();
-    println!("create indexes: {:?}", compound_index_create);
+    assert!(create_compound_index.is_ok());
+    let create_compound_index = create_compound_index.unwrap();
+    println!("create indexes: {:?}", create_compound_index);
 
     // we know `TestCompoundIndexCrud` has a compound index, and currently single_index
     // and compound_index are not coexisted, so we are sure the first index in the result
     // is the compound index
-    let index_name = compound_index_create;
+    let index_name = create_compound_index;
     assert_eq!(index_name.len(), 1);
     let index_name = index_name[0].clone();
     println!("index name: {:?}", index_name);
@@ -121,5 +127,14 @@ async fn test_indexes_operations() {
     let indexes_names = client.list_indexes_name().await;
     assert!(indexes_names.is_ok());
     let indexes_names = indexes_names.unwrap();
+    assert_eq!(indexes_names.len(), 2);
+    println!("indexes names: {:?}", indexes_names);
+
+    // drop index
+    let drop_index = client.drop_index(&index_name).await;
+    assert!(drop_index.is_ok());
+
+    let indexes_names = client.list_indexes_name().await.unwrap();
+    assert_eq!(indexes_names.len(), 1);
     println!("indexes names: {:?}", indexes_names);
 }
