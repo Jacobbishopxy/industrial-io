@@ -121,7 +121,7 @@ impl MongoClient {
     }
 }
 
-pub trait MongoClientFactory: Send + Sync {
+pub trait MongoClientAbstraction: Send + Sync {
     /// get database
     fn database(&self) -> Cow<str>;
 
@@ -138,7 +138,7 @@ pub trait MongoClientFactory: Send + Sync {
     fn schema<T>(&self) -> mongodb::Collection<T>;
 }
 
-impl MongoClientFactory for MongoClient {
+impl MongoClientAbstraction for MongoClient {
     fn database(&self) -> Cow<str> {
         Cow::Borrowed(&self.database)
     }
@@ -159,6 +159,16 @@ impl MongoClientFactory for MongoClient {
         self.client
             .database(&self.database)
             .collection(&self.collection)
+    }
+}
+
+pub trait MongoClientFactory {
+    fn client(&self) -> &MongoClient;
+}
+
+impl MongoClientFactory for MongoClient {
+    fn client(&self) -> &MongoClient {
+        self
     }
 }
 
@@ -237,7 +247,7 @@ fn generate_mongo_index_module(indexes: &IndexOptions) -> Vec<MongoIndexModel> {
 
             let mut indexes_name = String::new();
             let keys = c.keys.iter().fold(doc! {}, |mut acc, (name, dir)| {
-                indexes_name.push_str(&name);
+                indexes_name.push_str(name);
                 indexes_name.push('_');
                 let dir: i32 = match dir {
                     Dir::Asc => 1,
@@ -280,7 +290,7 @@ pub trait BaseCRUD {
 /// According to `crud` crate, any struct who derived `CRUD` will automatically implement this trait.
 /// In other words, `MongoClient` can use methods in this trait to persist `TYPE` data.
 #[async_trait]
-pub trait MongoCRUD<TYPE>: MongoClientFactory
+pub trait MongoCRUD<TYPE>: MongoClientAbstraction
 where
     TYPE: Send + Sync + Clone + Serialize + DeserializeOwned + Unpin + BaseCRUD,
 {

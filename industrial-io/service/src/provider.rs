@@ -2,7 +2,7 @@
 //!
 //! Used for implementing domain specific logic for CRUD operations.
 
-use crud::{MongoClient, RedisClient};
+use crud::{MongoClient, MongoClientFactory, RedisClient};
 
 pub struct Provider {
     pub cache_client: RedisClient,
@@ -21,6 +21,12 @@ impl Provider {
             cache_client: None,
             persistence_client: None,
         }
+    }
+}
+
+impl MongoClientFactory for Provider {
+    fn client(&self) -> &MongoClient {
+        &self.persistence_client
     }
 }
 
