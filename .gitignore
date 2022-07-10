@@ -10,3 +10,4 @@ target
 **/*.rs.bk
 
 DIR.md
+.DS_store
